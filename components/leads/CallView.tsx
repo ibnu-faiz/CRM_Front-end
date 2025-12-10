@@ -1,209 +1,209 @@
-// components/leads/CallView.tsx
 'use client';
 
-import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
+import { Calendar, Clock, Phone, MoreHorizontal, User, FileText } from 'lucide-react';
+import { LeadActivity } from '@/lib/types';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Calendar, Clock, Phone, ChevronDown } from 'lucide-react';
-import AddCallModal from './AddCallModal';
+} from "@/components/ui/select";
+import { Label } from '@/components/ui/label';
 
-const mockCalls = [
-  {
-    id: 1,
-    title: 'Call Schedule created',
-    callTitle: "She's interested in your",
-    date: 'Today, 12:00 PM',
-    reminder: '15 minutes before',
-    purpose: '15 minutes before',
-    duration: '15 minute before',
-    status: 'Completed',
-  },
-];
+// --- Helper Functions ---
+// Format untuk tanggal di header (Created At)
+const formatCreationDate = (isoString?: string) => {
+  if (!isoString) return '-';
+  // Contoh: 17 Nov 2025
+  return new Date(isoString).toLocaleString('en-US', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  });
+};
 
+// Format untuk tanggal & waktu call
+const formatCallDateTime = (isoString?: string) => {
+  if (!isoString) return 'Not scheduled';
+  // Contoh: 18 Nov 2025, 10:00
+  return new Date(isoString).toLocaleString('en-US', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  });
+};
+// ---
+
+// --- Props Baru ---
 interface CallViewProps {
-  leadId: string;
+  calls: LeadActivity[] | undefined;
+  error: any;
+  onEditCall: (callId: string) => void;
+  onDeleteCall: (callId: string) => void;
+  onUpdateCall: (callId: string, metaUpdate: any) => void; // Prop baru untuk update
 }
 
-export default function CallView({ leadId }: CallViewProps) {
-  const [isAddCallOpen, setIsAddCallOpen] = useState(false);
-  const [selectedCall, setSelectedCall] = useState<number | null>(null);
-  const [expandedCall, setExpandedCall] = useState<number | null>(null);
-
-  const handleEditCall = (callId: number) => {
-    setSelectedCall(callId);
-    setIsAddCallOpen(true);
-  };
-
-  const toggleExpand = (callId: number) => {
-    setExpandedCall(expandedCall === callId ? null : callId);
-  };
+export default function CallView({ calls, error, onEditCall, onDeleteCall, onUpdateCall }: CallViewProps) {
+  
+  if (error) {
+    return <div className="text-red-500 p-4">Failed to load Call {(error as any).info?.error}</div>;
+  }
 
   return (
     <div className="space-y-4">
-      {/* Add Call Button */}
-      {/* <div className="flex justify-end">
-        <Button
-          onClick={() => setIsAddCallOpen(true)}
-          className="bg-gray-800 hover:bg-gray-700"
-        >
-          + Add Call
-        </Button>
-      </div> */}
-
-      {/* Calls List */}
       <div className="space-y-4">
-        {mockCalls.map((call) => (
-          <Card key={call.id} className="hover:shadow-md transition-shadow">
-            <CardContent className="p-6">
-              {/* Call Header */}
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-start gap-3">
-                  <Avatar className="w-10 h-10">
-                    <AvatarFallback className="bg-gray-900 text-white">
-                      <Phone className="w-5 h-5" />
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <h4 className="font-semibold text-gray-900">{call.title}</h4>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-2 text-sm text-gray-500">
-                    <Calendar className="w-4 h-4" />
-                    <span>{call.date}</span>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => toggleExpand(call.id)}
-                  >
-                    <ChevronDown
-                      className={`w-4 h-4 transition-transform ${
-                        expandedCall === call.id ? 'rotate-180' : ''
-                      }`}
-                    />
-                  </Button>
-                </div>
-              </div>
+        {calls && calls.length > 0 ? (
+          calls.map((call) => {
+            const title = call.content;
+            const meta = call.meta || {};
+            const callTime = meta.callTime;
+            const callNotes = meta.callNotes;
+            const callStatus = meta.callStatus;
+            const callResult = meta.callResult;
+            const contactName = meta.contactName;
+            const duration = meta.duration;
 
-              {/* Call Title */}
-              <div className="mb-3">
-                <p className="text-sm font-medium text-gray-700 mb-1">Call title</p>
-                <p className="text-sm text-gray-600">{call.callTitle}</p>
-              </div>
+            return (
+              <Card key={call.id} className="hover:shadow-md transition-shadow">
+                <CardContent className="p-6">
+                  {/* Call Header */}
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-start gap-3">
+                      <Avatar className="w-10 h-10">
+                        <AvatarFallback className="bg-gray-900 text-white">
+                          <Phone className="w-5 h-5" />
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <h4 className="font-semibold text-gray-900">{title}</h4>
+                        <p className="text-sm text-gray-500">
+                          Created by {call.createdBy.name}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {/* TANGGAL DIBUAT (Created At) */}
+                      <div className="flex items-center gap-2 text-sm text-gray-500">
+                        <Calendar className="w-4 h-4" />
+                        <span>{formatCreationDate(call.createdAt)}</span>
+                      </div>
+                      
+                      {/* Tombol Edit/Delete */}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreHorizontal className="w-4 h-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => onEditCall(call.id)}>
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => onDeleteCall(call.id)} className="text-red-500">
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </div>
 
-              {/* Collapsed View */}
-              {!expandedCall || expandedCall !== call.id ? (
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-xs text-gray-500 mb-1">Reminder</p>
-                    <Select defaultValue={call.reminder.replace(' ', '-').toLowerCase()}>
-                      <SelectTrigger className="h-9">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="15-minutes-before">15 minutes before</SelectItem>
-                        <SelectItem value="30-minutes-before">30 minutes before</SelectItem>
-                        <SelectItem value="1-hour-before">1 hour before</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500 mb-1">Call Purpose</p>
-                    <Select defaultValue={call.purpose.replace(' ', '-').toLowerCase()}>
-                      <SelectTrigger className="h-9">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="15-minutes-before">15 minutes before</SelectItem>
-                        <SelectItem value="30-minutes-before">30 minutes before</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              ) : (
-                /* Expanded View */
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
+                  {/* --- TAMPILAN DETAIL BARU --- */}
+                  <div className="grid grid-cols-2 gap-4 mb-4 p-4 bg-gray-50 rounded-lg border">
+                    {/* Contact */}
+                    <div className="flex items-start gap-3">
+                      <User className="w-5 h-5 text-gray-500 mt-1" />
+                      <div>
+                        <p className="text-sm font-medium">Contact</p>
+                        <p className="text-sm text-gray-600">{contactName || '-'}</p>
+                      </div>
+                    </div>
                     {/* Duration */}
-                    <div>
-                      <p className="text-sm font-medium text-gray-700 mb-2">Duration</p>
-                      <div className="space-y-2">
-                        <label className="flex items-center gap-2 text-sm">
-                          <input type="radio" name="duration" defaultChecked />
-                          <Clock className="w-4 h-4" />
-                          <span>15 minute before</span>
-                        </label>
-                        <label className="flex items-center gap-2 text-sm">
-                          <input type="radio" name="duration" />
-                          <Clock className="w-4 h-4" />
-                          <span>15 minute before</span>
-                        </label>
-                        <label className="flex items-center gap-2 text-sm">
-                          <input type="radio" name="duration" />
-                          <Clock className="w-4 h-4" />
-                          <span>30 minute before</span>
-                        </label>
-                        <label className="flex items-center gap-2 text-sm">
-                          <input type="radio" name="duration" />
-                          <Clock className="w-4 h-4" />
-                          <span>45 minute before</span>
-                        </label>
+                    <div className="flex items-start gap-3">
+                      <Clock className="w-5 h-5 text-gray-500 mt-1" />
+                      <div>
+                        <p className="text-sm font-medium">Duration</p>
+                        <p className="text-sm text-gray-600">{duration || '-'}</p>
                       </div>
                     </div>
-
-                    {/* Status */}
-                    <div>
-                      <p className="text-sm font-medium text-gray-700 mb-2">Status</p>
-                      <div className="space-y-2">
-                        <label className="flex items-center gap-2 text-sm">
-                          <input type="radio" name="status" defaultChecked />
-                          <div className="w-3 h-3 rounded-full bg-green-500" />
-                          <span>Completed</span>
-                        </label>
-                        <label className="flex items-center gap-2 text-sm">
-                          <input type="radio" name="status" />
-                          <div className="w-3 h-3 rounded-full bg-blue-500" />
-                          <span>Succeeded</span>
-                        </label>
-                        <label className="flex items-center gap-2 text-sm">
-                          <input type="radio" name="status" />
-                          <div className="w-3 h-3 rounded-full bg-orange-500" />
-                          <span>Completed</span>
-                        </label>
-                        <label className="flex items-center gap-2 text-sm">
-                          <input type="radio" name="status" />
-                          <div className="w-3 h-3 rounded-full bg-red-500" />
-                          <span>Missed</span>
-                        </label>
+                    {/* Waktu Telepon */}
+                    <div className="flex items-start gap-3 col-span-2">
+                      <Calendar className="w-5 h-5 text-gray-500 mt-1" />
+                      <div>
+                        <p className="text-sm font-medium">Call Time</p>
+                        <p className="text-sm text-gray-600">{formatCallDateTime(callTime)}</p>
                       </div>
                     </div>
                   </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        ))}
-      </div>
 
-      {/* Add/Edit Call Modal */}
-      <AddCallModal
-        open={isAddCallOpen}
-        onOpenChange={(open) => {
-          setIsAddCallOpen(open);
-          if (!open) setSelectedCall(null);
-        }}
-        callId={selectedCall}
-      />
+                  {/* Call Notes (jika ada) */}
+                  {callNotes && (
+                    <div className="mb-4">
+                      <p className="text-sm font-medium text-gray-700 mb-1">Call Notes</p>
+                      <p className="text-sm text-gray-600 whitespace-pre-wrap">{callNotes}</p>
+                    </div>
+                  )}
+
+                  {/* --- DROPDOWN INTERAKTIF BARU --- */}
+                  <div className="pt-4 border-t">
+                    <div className="grid grid-cols-2 gap-4">
+                      {/* Status Dropdown */}
+                      <div className="grid gap-1.5">
+                        <Label>Status</Label>
+                        <Select
+                          value={callStatus}
+                          onValueChange={(newStatus) => {
+                            onUpdateCall(call.id, { callStatus: newStatus });
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Set status..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="completed">Completed</SelectItem>
+                            <SelectItem value="succeeded">Succeeded</SelectItem>
+                            <SelectItem value="missed">Missed</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      {/* Result Dropdown */}
+                      <div className="grid gap-1.5">
+                        <Label>Result</Label>
+                        <Select
+                          value={callResult}
+                          onValueChange={(newResult) => {
+                            onUpdateCall(call.id, { callResult: newResult });
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Set result..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="interested">Interested</SelectItem>
+                            <SelectItem value="not-interested">Not Interested</SelectItem>
+                            <SelectItem value="callback">Call Back Later</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </div>
+
+                </CardContent>
+              </Card>
+            );
+          })
+        ) : (
+          <p className="text-gray-500 text-center p-4">There is no Call</p>
+        )}
+      </div>
     </div>
   );
 }

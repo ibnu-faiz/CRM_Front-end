@@ -13,11 +13,19 @@ import { Trash2 } from 'lucide-react';
 interface DeleteLeadDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  leadTitle?: string;
+  onConfirm?: () => void;
 }
 
-export default function DeleteLeadDialog({ open, onOpenChange }: DeleteLeadDialogProps) {
+export default function DeleteLeadDialog({ 
+  open, 
+  onOpenChange,
+  leadTitle,
+  onConfirm 
+}: DeleteLeadDialogProps) {
   const handleConfirm = () => {
     console.log('Lead deleted');
+    onConfirm?.();
     onOpenChange(false);
   };
 
@@ -32,7 +40,10 @@ export default function DeleteLeadDialog({ open, onOpenChange }: DeleteLeadDialo
             Delete Lead?
           </AlertDialogTitle>
           <AlertDialogDescription className="text-center">
-            lorem ipsum sit dolor
+            {leadTitle 
+              ? `Are you sure you want to delete "${leadTitle}"? This action cannot be undone.`
+              : 'Are you sure you want to delete this lead? This action cannot be undone.'
+            }
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter className="flex-row gap-2 sm:gap-2">

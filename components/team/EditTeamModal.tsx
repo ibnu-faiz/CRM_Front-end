@@ -1,7 +1,6 @@
-// components/team/EditTeamModal.tsx
 'use client';
 
-import { useState } from 'react';
+import { useState, FormEvent } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -11,7 +10,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
@@ -19,246 +17,161 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { X, Bold, Italic, Underline, List, Link as LinkIcon, Image } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
+import { TeamMember, UserRole, UserStatus } from '@/lib/types';
+import { toast } from 'sonner';
 
-interface TeamMember {
-  id: number;
-  name: string;
-  role: string;
-  email: string;
-  department: string;
-  status: string;
-  joinedDate: string;
-  bio?: string;
-  skills?: string[];
-  reportsTo?: string;
-  location?: string;
-}
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 interface EditTeamModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   member: TeamMember;
+  onTeamUpdated: () => void;
 }
 
-export default function EditTeamModal({ open, onOpenChange, member }: EditTeamModalProps) {
-  const [skills, setSkills] = useState<string[]>(member.skills || []);
-  const [skillInput, setSkillInput] = useState('');
+export default function EditTeamModal({ open, onOpenChange, member, onTeamUpdated }: EditTeamModalProps) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const addSkill = () => {
-    if (skillInput.trim() && !skills.includes(skillInput.trim())) {
-      setSkills([...skills, skillInput.trim()]);
-      setSkillInput('');
+  // SAFETY CHECK: Jika member null (walaupun jarang terjadi di arsitektur ini), jangan render apa-apa
+  if (!member) return null;
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+
+    const formData = new FormData(e.target as HTMLFormElement);
+    const data = Object.fromEntries(formData.entries());
+    
+    // Hanya field Admin yang dikirim
+    const body = {
+      role: data.role,
+      department: data.department,
+      status: data.status,
+      joinedAt: data.joinedAt, 
+      reportsToId: data.reportsTo || null,
+    };
+
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_URL}/team/${member.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(body)
+      });
+      
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Failed to update team member');
+      }
+
+      toast.success('Team member updated successfully');
+      onTeamUpdated();
+      onOpenChange(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+      toast.error(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const removeSkill = (skillToRemove: string) => {
-    setSkills(skills.filter(skill => skill !== skillToRemove));
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Handle form submission
-    console.log('Form updated');
-    onOpenChange(false);
-  };
+  // Format tanggal aman
+  const formattedJoinedAt = member.joinedAt 
+    ? new Date(member.joinedAt).toISOString().split('T')[0] 
+    : member.createdAt 
+      ? new Date(member.createdAt).toISOString().split('T')[0] 
+      : '';
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Avatar className="w-8 h-8 bg-gray-900">
-              <AvatarFallback className="bg-gray-900 text-white">
-                <span className="text-sm">E</span>
+          <DialogTitle className="flex items-center gap-3">
+            <Avatar className="w-10 h-10">
+              <AvatarFallback className="bg-gray-200 text-gray-700 text-sm font-semibold">
+                {member.name.split(' ').map(n => n[0]).join('')}
               </AvatarFallback>
             </Avatar>
-            Edit Team
+            <div>
+                <p>Edit Team Member</p>
+                <p className="text-sm font-normal text-gray-500">{member.name}</p>
+            </div>
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Full Name */}
-          <div>
-            <Label htmlFor="fullname">Full Name*</Label>
-            <Input
-              id="fullname"
-              defaultValue={member.name}
-              placeholder="Input Your Full Name Here"
-              required
-            />
+        <form onSubmit={handleSubmit} className="space-y-5">
+          
+          {/* Info Read-Only */}
+          <div className="grid grid-cols-2 gap-4 p-3 bg-gray-50 rounded-md border border-gray-100 text-sm">
+             <div>
+                <span className="block text-xs text-gray-500">Email</span>
+                <span className="font-medium text-gray-700">{member.email}</span>
+             </div>
+             <div>
+                <span className="block text-xs text-gray-500">Phone</span>
+                <span className="font-medium text-gray-700">{member.phone || '-'}</span>
+             </div>
           </div>
 
-          {/* Email & Phone */}
+          {/* Field Edit Admin */}
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="email">E-mail*</Label>
-              <Input
-                id="email"
-                type="email"
-                defaultValue={member.email}
-                placeholder="Input Your E-mail Here"
-                required
-              />
+            <div className="grid gap-1.5">
+              <Label htmlFor="role">Role</Label>
+              <Select name="role" required defaultValue={member.role} disabled={loading}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={UserRole.ADMIN}>Admin</SelectItem>
+                  <SelectItem value={UserRole.SALES}>Sales</SelectItem>
+                  <SelectItem value={UserRole.VIEWER}>Viewer</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-            <div>
-              <Label htmlFor="phone">Phone*</Label>
-              <Input
-                id="phone"
-                type="tel"
-                placeholder="Input Your Phone Number Here"
-                required
-              />
+            <div className="grid gap-1.5">
+              <Label htmlFor="status">Status</Label>
+              <Select name="status" required defaultValue={member.status} disabled={loading}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={UserStatus.ACTIVE}>Active</SelectItem>
+                  <SelectItem value={UserStatus.INACTIVE}>Inactive</SelectItem>
+                  <SelectItem value={UserStatus.ONBOARDING}>Onboarding</SelectItem>
+                  <SelectItem value={UserStatus.ON_LEAVE}>On Leave</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
-          {/* Role & Department */}
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="role">Role*</Label>
-              <Select defaultValue={member.role.toLowerCase()}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ui ux designer">UI UX Designer</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
-                  <SelectItem value="sales">Sales</SelectItem>
-                  <SelectItem value="marketing">Marketing</SelectItem>
-                </SelectContent>
-              </Select>
+             <div className="grid gap-1.5">
+              <Label htmlFor="department">Department</Label>
+              <Input id="department" name="department" defaultValue={member.department || ''} disabled={loading} placeholder="e.g., Sales" />
             </div>
-            <div>
-              <Label htmlFor="department">Department*</Label>
-              <Select defaultValue={member.department.toLowerCase()}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="developer team">Developer Team</SelectItem>
-                  <SelectItem value="sales">Sales</SelectItem>
-                  <SelectItem value="marketing">Marketing</SelectItem>
-                  <SelectItem value="product">Product</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="grid gap-1.5">
+              <Label htmlFor="joinedAt">Joined Date</Label>
+              <Input id="joinedAt" name="joinedAt" type="date" defaultValue={formattedJoinedAt} disabled={loading} />
             </div>
           </div>
 
-          {/* Status, Joined Date, Location */}
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <Label htmlFor="status">Status*</Label>
-              <Select defaultValue={member.status}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
-                  <SelectItem value="onboarding">Onboarding</SelectItem>
-                  <SelectItem value="on-leave">On Leave</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="joinedDate">Joined At*</Label>
-              <Input id="joinedDate" type="date" defaultValue="2025-06-09" />
-            </div>
-            <div>
-              <Label htmlFor="location">Location</Label>
-              <Input id="location" placeholder="Kota Malang" defaultValue={member.location} />
-            </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="reportsTo">Reports To (Manager ID)</Label>
+            <Input id="reportsTo" name="reportsTo" defaultValue={member.reportsToId || ''} disabled={loading} placeholder="User ID" />
+          </div>
+          
+          {error && <p className="text-sm text-red-500">{error}</p>}
+
+          <div className="flex justify-end gap-2 pt-4">
+             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>Cancel</Button>
+             <Button type="submit" className="bg-gray-800 hover:bg-gray-700" disabled={loading}>
+                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save Changes'}
+             </Button>
           </div>
 
-          {/* Bio */}
-          <div>
-            <Label htmlFor="bio">Bio</Label>
-            <div className="space-y-2">
-              <Textarea
-                id="bio"
-                defaultValue={member.bio}
-                placeholder="Input Bio"
-                rows={4}
-                className="resize-none"
-              />
-              
-              {/* Rich Text Editor Toolbar */}
-              <div className="flex items-center gap-1 border-t pt-2">
-                <button type="button" className="p-2 hover:bg-gray-100 rounded">
-                  <Bold className="w-4 h-4" />
-                </button>
-                <button type="button" className="p-2 hover:bg-gray-100 rounded">
-                  <Italic className="w-4 h-4" />
-                </button>
-                <button type="button" className="p-2 hover:bg-gray-100 rounded">
-                  <Underline className="w-4 h-4" />
-                </button>
-                <div className="w-px h-6 bg-gray-300 mx-1" />
-                <button type="button" className="p-2 hover:bg-gray-100 rounded">
-                  <List className="w-4 h-4" />
-                </button>
-                <button type="button" className="p-2 hover:bg-gray-100 rounded">
-                  <LinkIcon className="w-4 h-4" />
-                </button>
-                <button type="button" className="p-2 hover:bg-gray-100 rounded">
-                  <Image className="w-4 h-4" />
-                </button>
-              </div>
-              <p className="text-xs text-gray-500 text-right">0/100</p>
-            </div>
-          </div>
-
-          {/* Skills */}
-          <div>
-            <Label htmlFor="skills">Skills</Label>
-            <div className="space-y-2">
-              <Input
-                id="skills"
-                placeholder="Input Your Skills Here"
-                value={skillInput}
-                onChange={(e) => setSkillInput(e.target.value)}
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    addSkill();
-                  }
-                }}
-              />
-              {skills.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {skills.map((skill) => (
-                    <Badge
-                      key={skill}
-                      variant="secondary"
-                      className="px-3 py-1 gap-1"
-                    >
-                      {skill}
-                      <button
-                        type="button"
-                        onClick={() => removeSkill(skill)}
-                        className="ml-1 hover:text-red-600"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </Badge>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Reports to */}
-          <div>
-            <Label htmlFor="reportsTo">Reports to</Label>
-            <Input id="reportsTo" placeholder="—" defaultValue={member.reportsTo} />
-          </div>
-
-          {/* Submit Button */}
-          <Button type="submit" className="w-full bg-gray-800 hover:bg-gray-700">
-            Update Team
-          </Button>
         </form>
       </DialogContent>
     </Dialog>

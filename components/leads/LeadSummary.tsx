@@ -1,20 +1,49 @@
-// components/leads/LeadSummary.tsx
+'use client';
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Edit, ChevronDown, ChevronUp } from 'lucide-react';
+import { Edit, ChevronDown, ChevronUp, Calendar, User, Phone, Mail } from 'lucide-react';
 import { useState } from 'react';
-import { Calendar } from "lucide-react";
-
+import { Lead } from '@/lib/types';
 
 interface LeadSummaryProps {
+  lead: Lead;
   onEdit: () => void;
 }
 
-export default function LeadSummary({ onEdit }: LeadSummaryProps) {
+export default function LeadSummary({ lead, onEdit }: LeadSummaryProps) {
   const [detailOpen, setDetailOpen] = useState(true);
   const [sourceOpen, setSourceOpen] = useState(true);
   const [personOpen, setPersonOpen] = useState(true);
+
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return '-';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('id-ID', { 
+      day: 'numeric', 
+      month: 'short', 
+      year: 'numeric' 
+    });
+  };
+
+  const getPriorityLabel = (priority: string | null | undefined) => {
+    const labels: Record<string, string> = {
+      LOW: 'Low Priority',
+      MEDIUM: 'Medium Priority',
+      HIGH: 'High Priority',
+    };
+    return priority ? labels[priority] || priority : 'Unknown Priority';
+  };
+
+  const getClientTypeLabel = (clientType: string | null) => {
+    if (!clientType) return null;
+    const labels: Record<string, string> = {
+      new: 'New Client',
+      existing: 'Existing Client',
+    };
+    return labels[clientType.toLowerCase()] || clientType;
+  };
 
   return (
     <div className="space-y-4">
@@ -28,27 +57,54 @@ export default function LeadSummary({ onEdit }: LeadSummaryProps) {
             </Button>
           </div>
         </CardHeader>
+
         <CardContent className="space-y-3 text-sm">
+          {/* Deal Value */}
           <div>
             <p className="text-gray-500">Deal Value</p>
-            <p className="font-semibold">IDR 30.000</p>
+            <p className="font-semibold">
+              {lead.currency ?? 'IDR'}{' '}
+              {typeof lead.value === 'number'
+                ? lead.value.toLocaleString('id-ID')
+                : '0'}
+            </p>
           </div>
-          <div>
-            <p className="text-gray-500">Company</p>
-            <p className="font-semibold">Company name</p>
+
+          {/* Company */}
+          {lead.company && (
+            <div>
+              <p className="text-gray-500">Company</p>
+              <p className="font-semibold">{lead.company}</p>
+            </div>
+          )}
+
+          {/* Contact Person */}
+          {lead.contacts && (
+            <div>
+              <p className="text-gray-500">Contact Person</p>
+              <p className="font-semibold">{lead.contacts}</p>
+            </div>
+          )}
+
+          {/* Badges */}
+          <div className="flex flex-wrap gap-2">
+            <Badge variant="secondary">
+              {getPriorityLabel(lead.priority)}
+            </Badge>
+            {lead.clientType && (
+              <Badge variant="secondary">
+                {getClientTypeLabel(lead.clientType)}
+              </Badge>
+            )}
           </div>
-          <div>
-            <p className="text-gray-500">Contact Person</p>
-            <p className="font-semibold">Lorem Ipsum Sit Dolor</p>
-          </div>
-          <div className="flex gap-2">
-            <Badge variant="secondary">High Priority</Badge>
-            <Badge variant="secondary">New Client</Badge>
-          </div>
-          <div className="flex items-center gap-2 text-gray-500">
-            <Calendar className="w-4 h-4" />
-            <span>7/7/2025</span>
-          </div>
+
+          {/* Due Date */}
+          {lead.dueDate && (
+            <div className="flex items-center gap-2 text-gray-500">
+              <Calendar className="w-4 h-4" />
+              <span>{formatDate(lead.dueDate)}</span>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -64,14 +120,18 @@ export default function LeadSummary({ onEdit }: LeadSummaryProps) {
             {detailOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </Button>
         </CardHeader>
+
         {detailOpen && (
           <CardContent className="text-sm space-y-2">
-            <p className="text-gray-600">
-              Your details section is empty. Add custom fields or drag and drop existing ones to populate it.
-            </p>
-            <Button variant="link" className="p-0 h-auto text-gray-900">
-              Drag and drop fields →
-            </Button>
+            {lead.description ? (
+              <p className="text-gray-600 whitespace-pre-wrap">{lead.description}</p>
+            ) : (
+              <>
+                <p className="text-gray-600">
+                  Your details section is empty.
+                </p>
+              </>
+            )}
           </CardContent>
         )}
       </Card>
@@ -91,6 +151,7 @@ export default function LeadSummary({ onEdit }: LeadSummaryProps) {
             {sourceOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </Button>
         </CardHeader>
+
         {sourceOpen && (
           <CardContent className="text-sm space-y-2">
             <div className="flex justify-between">
@@ -121,21 +182,34 @@ export default function LeadSummary({ onEdit }: LeadSummaryProps) {
             {personOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </Button>
         </CardHeader>
+
         {personOpen && (
           <CardContent className="text-sm space-y-3">
-            <div className="flex items-center gap-2">
-              <span className="text-gray-500">👤</span>
-              <span>Lorem Ipsum Sit Dolor</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-gray-500">📞</span>
-              <span>852-252-9773</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-gray-500">📧</span>
-              <span className="truncate">lorem.ipsum@email.com</span>
-              <Badge variant="secondary" className="text-xs">MAIN</Badge>
-            </div>
+            {lead.contacts && (
+              <div className="flex items-center gap-2">
+                <User className="w-4 h-4 text-gray-500" />
+                <span>{lead.contacts}</span>
+              </div>
+            )}
+
+            {lead.phone && (
+              <div className="flex items-center gap-2">
+                <Phone className="w-4 h-4 text-gray-500" />
+                <span>{lead.phone}</span>
+              </div>
+            )}
+
+            {lead.email && (
+              <div className="flex items-center gap-2">
+                <Mail className="w-4 h-4 text-gray-500" />
+                <span className="truncate">{lead.email}</span>
+                <Badge variant="secondary" className="text-xs">MAIN</Badge>
+              </div>
+            )}
+
+            {!lead.contacts && !lead.phone && !lead.email && (
+              <p className="text-gray-500">No contact information available</p>
+            )}
           </CardContent>
         )}
       </Card>

@@ -1,96 +1,166 @@
-// components/leads/LeadCard.tsx
-'use client';
-
-import { useRouter } from 'next/navigation';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { DollarSign, Users, GripVertical, Eye } from 'lucide-react';
-
-interface Lead {
-  id: number;
-  title: string;
-  company: string;
-  value: string;
-  priority: string;
-  status: string;
-  responsible: string;
-}
+"use client";
+import { Lead, LeadPriority } from "@/lib/types";
+import { Calendar, Archive, ArchiveRestore } from "lucide-react"; // Import icon Archive
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useRouter } from "next/navigation";
 
 interface LeadCardProps {
   lead: Lead;
+  // Tambahkan prop onArchive (opsional, agar fleksibel)
+  onArchive?: (id: string) => void;
 }
 
-export default function LeadCard({ lead }: LeadCardProps) {
+const priorityColors = {
+  [LeadPriority.LOW]: "bg-gray-100 text-gray-700",
+  [LeadPriority.MEDIUM]: "bg-yellow-100 text-yellow-700",
+  [LeadPriority.HIGH]: "bg-red-100 text-red-700",
+};
+
+const labelColors: Record<string, string> = {
+  cold: "bg-blue-100 text-blue-700",
+  hot: "bg-red-100 text-red-700",
+  pitching: "bg-purple-100 text-purple-700",
+  deal: "bg-green-100 text-green-700",
+};
+
+export default function LeadCard({ lead, onArchive }: LeadCardProps) {
   const router = useRouter();
 
+  const handleDragStart = (e: React.DragEvent) => {
+    e.dataTransfer.setData("leadId", lead.id);
+    e.dataTransfer.setData("leadTitle", lead.title);
+    e.dataTransfer.setData("leadStatus", lead.status);
+    e.dataTransfer.effectAllowed = "move";
+  };
+
   const handleClick = (e: React.MouseEvent) => {
-    // Don't navigate if dragging
-    if ((e.target as HTMLElement).closest('[data-drag-handle]')) {
+    // Don't navigate if dragging or clicking button
+    if (
+      (e.target as HTMLElement).closest("[data-drag-handle]") ||
+      (e.target as HTMLElement).closest("button")
+    ) {
       return;
     }
     router.push(`/leads/${lead.id}`);
   };
 
-  const handleDragStart = (e: React.DragEvent) => {
-    e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('leadId', lead.id.toString());
-    e.dataTransfer.setData('leadTitle', lead.title);
+  // Handle Archive Click
+  const handleArchiveClick = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Mencegah card click (pindah halaman)
+    if (onArchive) {
+      onArchive(lead.id);
+    }
   };
 
   return (
-    <Card 
-      className="hover:shadow-md transition-shadow cursor-pointer group" 
-      onClick={handleClick}
+    <div
       draggable
       onDragStart={handleDragStart}
+      onClick={handleClick}
+      className={`bg-white rounded-lg border border-gray-200 p-4 cursor-pointer hover:shadow-md transition-shadow group ${
+        lead.isArchived ? "opacity-60 grayscale bg-gray-50" : ""
+      }`}
     >
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between mb-3">
-          <div className="flex items-start gap-2 flex-1">
-            <button 
-              data-drag-handle
-              className="opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing"
-              onMouseDown={(e) => e.stopPropagation()}
-            >
-              <GripVertical className="w-4 h-4 text-gray-400" />
-            </button>
-            <div className="flex-1">
-              <h4 className="font-semibold text-sm mb-1">{lead.title}</h4>
-              <p className="text-xs text-gray-500">{lead.company}</p>
-            </div>
-          </div>
-          <button 
-            className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-100 rounded"
-            onClick={(e) => {
-              e.stopPropagation();
-              router.push(`/leads/${lead.id}`);
-            }}
+      {/* Header & Archive Button */}
+      <div className="flex items-start justify-between mb-3 gap-2">
+        <h4 className="font-bold text-l text-gray-900 line-clamp-2 flex-1">
+          {lead.title}
+        </h4>
+
+        {/* Tombol Archive (Hanya muncul saat hover di desktop, atau selalu di mobile) */}
+        {onArchive && (
+          <button
+            onClick={handleArchiveClick}
+            className={`p-1.5 rounded-md transition-colors opacity-0 group-hover:opacity-100 ${
+              lead.isArchived
+                ? "bg-blue-50 text-blue-600 hover:bg-blue-100" // Warna untuk Restore (Unarchive)
+                : "text-gray-400 hover:text-gray-900 hover:bg-gray-100" // Warna untuk Archive biasa
+            }`}
+            title={lead.isArchived ? "Unarchive" : "Archive"}
           >
-            <Eye className="w-4 h-4 text-gray-400" />
+            {lead.isArchived ? (
+              <ArchiveRestore className="w-4 h-4" />
+            ) : (
+              <Archive className="w-4 h-4" />
+            )}
           </button>
+        )}
+      </div>
+
+      {/* Company */}
+      {lead.company && (
+        <p className="text-xs text-gray-500 mb-2">{lead.company}</p>
+      )}
+
+      {/* Value */}
+      <div className="mb-3">
+        <p className="text-lg font-bold text-gray-900">
+          {lead.currency} {(lead.value || 0).toLocaleString("id-ID")}
+        </p>
+      </div>
+
+      {/* Tags */}
+      <div className="flex flex-wrap gap-2 mb-3">
+        <span
+          className={`px-2 py-1 rounded text-xs font-medium ${
+            priorityColors[lead.priority]
+          }`}
+        >
+          {lead.priority}
+        </span>
+        {lead.label && (
+          <span
+            className={`px-2 py-1 rounded text-xs font-medium ${
+              labelColors[lead.label.toLowerCase()] ||
+              "bg-gray-100 text-gray-700"
+            }`}
+          >
+            {lead.label}
+          </span>
+        )}
+      </div>
+
+      {/* Footer */}
+      <div className="flex items-center justify-between pt-3 border-t border-gray-100 mt-auto">
+        {/* Bagian Kiri: Tanggal */}
+        <div className="flex items-center gap-1.5 text-xs text-gray-500">
+          <Calendar className="w-3.5 h-3.5" />
+          <span>
+            {lead.dueDate
+              ? new Date(lead.dueDate).toLocaleDateString("id-ID", {
+                  day: "numeric",
+                  month: "short",
+                  year: "2-digit",
+                })
+              : "-"}
+          </span>
         </div>
 
-        <div className="flex items-center gap-2 text-xs text-gray-600 mb-3">
-          <DollarSign className="w-3 h-3" />
-          <span>{lead.value}</span>
-          <span className="text-gray-400">•</span>
-          <span className="text-gray-400">7/7/2025</span>
-        </div>
+        {/* Bagian Kanan: Avatar */}
+        <div className="flex -space-x-2 overflow-hidden pl-2">
+          {lead.assignedUsers && lead.assignedUsers.length > 0 ? (
+            lead.assignedUsers.slice(0, 3).map((user) => (
+              <Avatar key={user.id} className="w-6 h-6 border-2 border-white">
+                <AvatarImage src={user.avatar || undefined} />
+                <AvatarFallback className="text-[9px] bg-gray-900 text-white font-medium">
+                  {user.name.charAt(0).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+            ))
+          ) : (
+            <div className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center border-2 border-white">
+              <span className="text-[10px] text-gray-400">?</span>
+            </div>
+          )}
 
-        <div className="flex flex-wrap gap-2 mb-3">
-          <Badge variant="secondary" className="text-xs">
-            {lead.priority}
-          </Badge>
-          <Badge variant="secondary" className="text-xs">
-            {lead.status}
-          </Badge>
+          {/* Counter + */}
+          {lead.assignedUsers && lead.assignedUsers.length > 3 && (
+            <div className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center border-2 border-white text-[9px] text-gray-600 font-medium">
+              +{lead.assignedUsers.length - 3}
+            </div>
+          )}
         </div>
-
-        <div className="flex items-center gap-2 text-xs text-gray-600">
-          <Users className="w-3 h-3" />
-          <span>{lead.responsible}</span>
-        </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

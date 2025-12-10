@@ -1,4 +1,3 @@
-// components/leads/InvoicePreviewModal.tsx
 'use client';
 
 import {
@@ -8,162 +7,149 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Edit, Download, Printer, Check } from 'lucide-react';
+import { Download, Printer, Loader2 } from 'lucide-react';
+import useSWR from 'swr';
+import { fetcher } from '@/lib/fetcher';
+import { LeadActivity, InvoiceItem } from '@/lib/types';
 
-interface InvoicePreviewModalProps {
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
+interface InvoicePreviewModal {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  invoiceId?: number | null;
+  leadId: string;
+  invoiceId?: string | null;
 }
 
-export default function InvoicePreviewModal({ open, onOpenChange, invoiceId }: InvoicePreviewModalProps) {
-  const handleSaveAsDraft = () => {
-    console.log('Save as draft');
-    onOpenChange(false);
-  };
+const formatCurrency = (amount: number) => {
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency', currency: 'IDR', minimumFractionDigits: 0,
+  }).format(amount);
+};
+
+export default function InvoicePreviewModal({ 
+  open, onOpenChange, leadId, invoiceId 
+}: InvoicePreviewModal) {
+
+  const { data: invoice, error, isLoading } = useSWR<LeadActivity>(
+    open && invoiceId ? `${API_URL}/leads/${leadId}/invoices/${invoiceId}` : null,
+    fetcher
+  );
+
+  const meta = invoice?.meta || {};
+  const items = meta.items || [];
+  const notes = meta.notes || '';
+  
+  // Baca data yang sudah diperbaiki
+  const billedBy = meta.billedBy || 'cmlabs';
+  const billedTo = meta.billedTo || '(Client Name)';
+  
+  const subtotal = meta.subtotal || 0;
+  const tax = meta.tax || 0;
+  const totalAmount = meta.totalAmount || 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader className="flex flex-row items-center justify-between">
-          <DialogTitle className="flex items-center gap-2">
-            <span className="w-8 h-8 bg-gray-900 rounded-full flex items-center justify-center text-white">
-              👁
-            </span>
-            Preview
-          </DialogTitle>
+          <DialogTitle>Preview Invoice</DialogTitle>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon">
-              <Edit className="w-4 h-4" />
-            </Button>
-            <Button variant="ghost" size="icon">
-              <Download className="w-4 h-4" />
-            </Button>
-            <Button variant="ghost" size="icon">
-              <Printer className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="outline"
-              className="gap-2"
-              onClick={handleSaveAsDraft}
-            >
-              <Check className="w-4 h-4" />
-              Save as Draft
-            </Button>
+            <Button variant="ghost" size="icon"><Download className="w-4 h-4" /></Button>
+            <Button variant="ghost" size="icon"><Printer className="w-4 h-4" /></Button>
           </div>
         </DialogHeader>
 
-        {/* Invoice Preview */}
-        <div className="bg-white border rounded-lg p-8 space-y-8">
-          {/* Header */}
-          <div className="flex items-start justify-between pb-6 border-b">
-            <div>
-              <h2 className="text-2xl font-bold mb-2">Invoice</h2>
-              <p className="text-sm text-gray-600">INV-20250801-001</p>
-            </div>
-            <div className="text-right">
-              <h3 className="text-xl font-bold">CRM cmlabs</h3>
-            </div>
-          </div>
-
-          {/* Billed By & Billed To */}
-          <div className="grid grid-cols-2 gap-8">
-            <div>
-              <h4 className="font-semibold mb-2">Billed By:</h4>
-              <p className="text-sm text-gray-700">cmlabs</p>
-              <p className="text-sm text-gray-600">
-                Jl. Seruni No.9, Lowokwaru, Kec.<br />
-                Lowokwaru, Kota Malang, Jawa Timur<br />
-                marketing@cmlabs.co
-              </p>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-2">Billed To:</h4>
-              <p className="text-sm text-gray-700">company name</p>
-              <p className="text-sm text-gray-600">
-                Jl. Indonesia No.10, Kelurahan,<br />
-                Kecamatan, Kota, Provinsi<br />
-                companyname@email.com
-              </p>
-            </div>
-          </div>
-
-          {/* Date Information */}
-          <div className="grid grid-cols-2 gap-8">
-            <div>
-              <p className="text-sm text-gray-600">Date Invoice:</p>
-              <p className="font-semibold">August 1, 2025</p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">Due Date:</p>
-              <p className="font-semibold">August 1, 2025</p>
-            </div>
-          </div>
-
-          {/* Items Table */}
-          <div>
-            <table className="w-full">
-              <thead className="border-b-2 border-gray-900">
-                <tr>
-                  <th className="text-left py-3 font-semibold">Item Name</th>
-                  <th className="text-center py-3 font-semibold w-20">Qty</th>
-                  <th className="text-right py-3 font-semibold w-32">Unit Price</th>
-                  <th className="text-right py-3 font-semibold w-32">Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr className="border-b">
-                  <td className="py-3">Item 1</td>
-                  <td className="text-center py-3">0</td>
-                  <td className="text-right py-3">IDR 0</td>
-                  <td className="text-right py-3">IDR 0</td>
-                </tr>
-                <tr className="border-b">
-                  <td className="py-3">Item 1</td>
-                  <td className="text-center py-3">0</td>
-                  <td className="text-right py-3">IDR 0</td>
-                  <td className="text-right py-3">IDR 0</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          {/* Summary */}
-          <div className="flex justify-end">
-            <div className="w-64 space-y-3">
-              <div className="flex justify-between py-2">
-                <span className="text-sm">Subtotal</span>
-                <span className="font-medium">IDR 0</span>
+        {isLoading && <div className="flex justify-center h-96 items-center"><Loader2 className="animate-spin w-8 h-8" /></div>}
+        
+        {!isLoading && invoice && (
+          <div className="bg-white border rounded-lg p-10 space-y-8 shadow-sm">
+            {/* Header */}
+            <div className="flex items-start justify-between pb-6 border-b border-gray-200">
+              <div>
+                <h2 className="text-3xl font-bold mb-1 text-gray-900">INVOICE</h2>
+                <p className="text-base text-gray-500 font-medium">#{invoice.content}</p>
               </div>
-              <div className="flex justify-between py-2">
-                <span className="text-sm">Tax(10%)</span>
-                <span className="font-medium">IDR 0</span>
-              </div>
-              <div className="flex justify-between py-3 border-t-2 border-gray-900">
-                <span className="font-bold">Total Amount</span>
-                <span className="font-bold">IDR 0</span>
+              <div className="text-right">
+                {/* Logo bisa ditaruh di sini */}
+                <h3 className="text-xl font-bold text-gray-800">cmlabs</h3>
               </div>
             </div>
-          </div>
 
-          {/* Notes */}
-          <div>
-            <h4 className="font-semibold mb-2">Notes</h4>
-            <p className="text-sm text-gray-600">
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod
-              tempor incididunt ut labore et dolore magna aliqua.
-            </p>
-          </div>
+            {/* Address Info */}
+            <div className="grid grid-cols-2 gap-12">
+              <div>
+                <h4 className="text-xs font-bold text-gray-400 uppercase mb-3 tracking-wider">Billed By</h4>
+                <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+                  {billedBy}
+                </p>
+              </div>
+              <div>
+                <h4 className="text-xs font-bold text-gray-400 uppercase mb-3 tracking-wider">Billed To</h4>
+                <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+                  {billedTo}
+                </p>
+              </div>
+            </div>
 
-          {/* Footer */}
-          <div className="text-center pt-6 border-t">
-            <p className="text-xl font-bold mb-2">THANK YOU!</p>
-            <div className="flex items-center justify-center gap-8 text-sm">
-              <span>089897233</span>
-              <span className="font-semibold">cmlabs</span>
+            {/* Date Section (DIHAPUS SESUAI REQUEST) */}
+            {/* <div className="grid grid-cols-2 gap-8 bg-gray-50 p-4 rounded"> ... </div> */}
+
+            {/* Items Table */}
+            <div className="mt-8">
+              <table className="w-full">
+                <thead className="border-b-2 border-gray-900">
+                  <tr>
+                    <th className="text-left py-3 font-bold text-sm uppercase text-gray-600">Item Description</th>
+                    <th className="text-center py-3 font-bold text-sm uppercase text-gray-600 w-20">Qty</th>
+                    <th className="text-right py-3 font-bold text-sm uppercase text-gray-600 w-32">Price</th>
+                    <th className="text-right py-3 font-bold text-sm uppercase text-gray-600 w-32">Total</th>
+                  </tr>
+                </thead>
+                <tbody className="text-sm text-gray-700">
+                  {items.map((item: InvoiceItem, index: number) => (
+                    <tr key={index} className="border-b last:border-0 hover:bg-gray-50">
+                      <td className="py-4 font-medium">{item.name}</td>
+                      <td className="text-center py-4">{item.qty}</td>
+                      <td className="text-right py-4 text-gray-500">{formatCurrency(item.unitPrice)}</td>
+                      <td className="text-right py-4 font-bold text-gray-900">{formatCurrency(item.total)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Summary & Notes */}
+            <div className="flex flex-col md:flex-row justify-between gap-8 pt-4">
+              <div className="flex-1">
+                {notes && (
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <h4 className="font-bold mb-2 text-xs uppercase text-gray-500">Notes & Terms</h4>
+                    <p className="text-sm text-gray-600 whitespace-pre-wrap">{notes}</p>
+                  </div>
+                )}
+              </div>
+              
+              <div className="w-full md:w-72 space-y-3">
+                <div className="flex justify-between py-1 text-sm">
+                  <span className="text-gray-500">Subtotal</span>
+                  <span className="font-semibold text-gray-900">{formatCurrency(subtotal)}</span>
+                </div>
+                <div className="flex justify-between py-1 text-sm">
+                  <span className="text-gray-500">Tax (10%)</span>
+                  <span className="font-semibold text-gray-900">{formatCurrency(tax)}</span>
+                </div>
+                <div className="flex justify-between py-3 border-t-2 border-gray-900 mt-2">
+                  <span className="font-bold text-xl">Total</span>
+                  <span className="font-bold text-xl text-blue-600">{formatCurrency(totalAmount)}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="text-center pt-12 text-gray-400 text-xs">
+              <p>Thank you for your business</p>
             </div>
           </div>
-        </div>
+        )}
       </DialogContent>
     </Dialog>
   );

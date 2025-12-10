@@ -1,6 +1,8 @@
-// src/app/(main)/layout.tsx
+'use client';
+
 import Sidebar from '@/components/layout/Sidebar';
 import Navbar from '@/components/layout/Navbar';
+
 
 export default function MainLayout({
   children,
@@ -14,14 +16,13 @@ export default function MainLayout({
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Navbar */}
         <Navbar />
-
-        {/* Page Content */}
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto p-4">
           {children}
         </main>
       </div>
+
+     
     </div>
   );
 }

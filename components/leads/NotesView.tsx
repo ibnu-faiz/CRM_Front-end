@@ -1,133 +1,140 @@
-// components/leads/NotesView.tsx
 'use client';
 
-import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { FileText, Edit, Trash2, Calendar } from 'lucide-react';
-import AddNoteModal from './AddNotesModal';
+import { FileText, Edit, Trash2, Calendar, Paperclip } from 'lucide-react';
+import { LeadActivity } from '@/lib/types';
+import Image from 'next/image'; // 1. Impor Next.js Image
 
-const mockNotes = [
-  {
-    id: 1,
-    title: 'This is note title',
-    content: "She's interested in our new product line and wants our very best price. Please include a detailed breakdown of costs.",
-    author: 'Note by',
-    date: 'July 25, 2025',
-    image: true,
-  },
-];
+// --- Helper di luar komponen ---
 
+// 2. Fungsi Helper untuk Cek Tipe File
+const isImage = (url: string) => {
+  if (!url) return false;
+  // Memeriksa ekstensi file yang umum untuk gambar
+  return /\.(jpg|jpeg|png|gif|webp)$/i.test(url);
+};
+
+// 3. Fungsi Helper untuk Mendapatkan Nama File
+const getFileName = (url: string) => {
+  if (!url) return 'attachment';
+  try {
+    // Decode URI (misal: "file%20saya.pdf" -> "file saya.pdf")
+    // Ambil bagian terakhir setelah '/'
+    return decodeURIComponent(url.split('/').pop() || 'attachment');
+  } catch (e) {
+    // Fallback jika terjadi error decoding
+    return url.split('/').pop() || 'attachment';
+  }
+};
+// ---
+
+// Terima 'notes' dan 'error' sebagai props
 interface NotesViewProps {
-  leadId: string;
+  notes: LeadActivity[] | undefined;
+  error: any;
+  onEditNote: (noteId: string) => void;
+  onDeleteNote: (noteId: string) => void;
 }
 
-export default function NotesView({ leadId }: NotesViewProps) {
-  const [isAddNoteOpen, setIsAddNoteOpen] = useState(false);
-  const [selectedNote, setSelectedNote] = useState<number | null>(null);
-
-  const handleEditNote = (noteId: number) => {
-    setSelectedNote(noteId);
-    setIsAddNoteOpen(true);
-  };
-
-  const handleDeleteNote = (noteId: number) => {
-    console.log('Delete note:', noteId);
-    // Implement delete logic
-  };
+export default function NotesView({ notes, error, onEditNote, onDeleteNote }: NotesViewProps) {
+  
+  if (error) {
+    return <div className="text-red-500 p-4">Failed to load Notes {(error as any).info?.error}</div>;
+  }
 
   return (
     <div className="space-y-4">
-      {/* Add Note Button */}
-      {/* <div className="flex justify-end">
-        <Button
-          onClick={() => setIsAddNoteOpen(true)}
-          className="bg-gray-800 hover:bg-gray-700"
-        >
-          + Add Note
-        </Button>
-      </div> */}
-
-      {/* Notes List */}
       <div className="space-y-4">
-        {mockNotes.map((note) => (
-          <Card key={note.id} className="hover:shadow-md transition-shadow">
-            <CardContent className="p-6">
-              {/* Note Header */}
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
-                    <FileText className="w-5 h-5 text-gray-600" />
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-gray-900">{note.title}</h4>
-                    <p className="text-sm text-gray-500">{note.author}</p>
-                  </div>
-                </div>
+        {notes && notes.length > 0 ? (
+          notes.map((note) => {
+            // 4. Ambil URL Attachment dari Meta
+            const attachmentUrl = note.meta?.attachmentUrl;
 
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-2 text-sm text-gray-500">
-                    <Calendar className="w-4 h-4" />
-                    <span>{note.date}</span>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleEditNote(note.id)}
-                  >
-                    <Edit className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleDeleteNote(note.id)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-
-              {/* Note Content */}
-              <p className="text-gray-700 mb-4">{note.content}</p>
-
-              {/* Note Image/Attachment */}
-              {note.image && (
-                <div className="w-full h-48 bg-gray-100 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300">
-                  <div className="text-center">
-                    <div className="w-16 h-16 mx-auto mb-2 bg-gray-200 rounded-lg flex items-center justify-center">
-                      <svg
-                        className="w-8 h-8 text-gray-400"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                        />
-                      </svg>
+            return (
+              <Card key={note.id} className="hover:shadow-md transition-shadow">
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between mb-4">
+                    {/* Header */}
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                        <FileText className="w-5 h-5 text-gray-600" />
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-gray-900">Note</h4>
+                        <p className="text-sm text-gray-500">
+                          Note by {note.createdBy.name}
+                        </p>
+                      </div>
                     </div>
-                    <p className="text-sm text-gray-500">Image attachment</p>
+                    {/* Actions */}
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 text-sm text-gray-500">
+                        <Calendar className="w-4 h-4" />
+                        <span>{new Date(note.createdAt).toLocaleString('en-US', {dateStyle: 'medium', timeStyle: 'short'})}</span>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => onEditNote(note.id)}
+                      >
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => onDeleteNote(note.id)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+                  
+                  {/* Content */}
+                  <p className="text-gray-700 whitespace-pre-wrap">
+                    {note.content}
+                  </p>
 
-      {/* Add/Edit Note Modal */}
-      <AddNoteModal
-        open={isAddNoteOpen}
-        onOpenChange={(open) => {
-          setIsAddNoteOpen(open);
-          if (!open) setSelectedNote(null);
-        }}
-        noteId={selectedNote}
-      />
+                  {/* --- 5. Tampilkan Attachment (Blok Baru) --- */}
+                  {attachmentUrl && (
+                    <div className="mt-4 rounded-lg border overflow-hidden">
+                      {isImage(attachmentUrl) ? (
+                        // Jika ini gambar, tampilkan gambar
+                        <a href={attachmentUrl} target="_blank" rel="noopener noreferrer">
+                          <Image 
+                            src={attachmentUrl} 
+                            alt="Attachment" 
+                            width={800} // Lebar kontainer
+                            height={400} // Tinggi default
+                            className="w-full h-auto object-cover" 
+                          />
+                        </a>
+                      ) : (
+                        // Jika file lain (PDF, DOCX, dll), tampilkan link
+                        <a 
+                          href={attachmentUrl} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="flex items-center gap-2 p-3 bg-gray-50 hover:bg-gray-100 transition-colors"
+                        >
+                          <Paperclip className="w-4 h-4 text-gray-600 flex-shrink-0" />
+                          <span className="text-sm font-medium text-blue-600 hover:underline truncate">
+                            {getFileName(attachmentUrl)}
+                          </span>
+                        </a>
+                      )}
+                    </div>
+                  )}
+                  {/* --- Akhir Blok Attachment --- */}
+
+                </CardContent>
+              </Card>
+            )
+          })
+        ) : (
+          <p className="text-gray-500 text-center p-4">There is no Note</p>
+        )}
+      </div>
     </div>
   );
 }

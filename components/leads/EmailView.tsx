@@ -1,133 +1,150 @@
-// components/leads/EmailView.tsx
 'use client';
 
-import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Mail, Calendar, Edit, Trash2 } from 'lucide-react';
-import AddEmailModal from './AddEmailModal';
+import { Mail, Calendar, Edit, Trash2, Paperclip, CornerUpLeft, Clock, CheckCircle2 } from 'lucide-react';
+import { LeadActivity } from '@/lib/types';
 
-const mockEmails = [
-  {
-    id: 1,
-    subject: 'Thankyou for contacting',
-    to: 'name@gmail.com',
-    content: 'your email....',
-    date: 'July 25, 2025',
-    hasAttachment: true,
-  },
-];
+// Helper Date
+const formatCreationDate = (isoString?: string) => {
+  if (!isoString) return '-';
+  return new Date(isoString).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
+};
+
+// Helper File Name
+const getFileName = (url: string) => {
+  if (!url) return 'attachment';
+  try { return decodeURIComponent(url.split('/').pop() || 'attachment'); } catch (e) { return url.split('/').pop() || 'attachment'; }
+};
 
 interface EmailViewProps {
-  leadId: string;
+  emails: LeadActivity[] | undefined;
+  error: any;
+  onEditEmail: (emailId: string) => void;
+  onDeleteEmail: (emailId: string) => void;
 }
 
-export default function EmailView({ leadId }: EmailViewProps) {
-  const [isAddEmailOpen, setIsAddEmailOpen] = useState(false);
-  const [selectedEmail, setSelectedEmail] = useState<number | null>(null);
+export default function EmailView({ emails, error, onEditEmail, onDeleteEmail }: EmailViewProps) {
+  
+  if (error) {
+    return <div className="p-4 bg-red-50 text-red-600 rounded-md">Error loading emails.</div>;
+  }
 
-  const handleEditEmail = (emailId: number) => {
-    setSelectedEmail(emailId);
-    setIsAddEmailOpen(true);
-  };
-
-  const handleDeleteEmail = (emailId: number) => {
-    console.log('Delete email:', emailId);
-    // Implement delete logic
-  };
+  if (!emails || emails.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 text-center border-2 border-dashed border-gray-200 rounded-lg bg-gray-50/50">
+        <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-3">
+          <Mail className="w-6 h-6 text-gray-400" />
+        </div>
+        <p className="text-gray-900 font-medium">No emails logged yet</p>
+        <p className="text-sm text-gray-500 mt-1 max-w-xs">Sent emails and drafts will appear here.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
-      {/* Add Note Button (reusing from wireframe - shows "+ Add Note") */}
-      {/* <div className="flex justify-end">
-        <Button
-          onClick={() => setIsAddEmailOpen(true)}
-          className="bg-gray-800 hover:bg-gray-700"
-        >
-          + Add Note
-        </Button>
-      </div> */}
+      {emails.map((email) => {
+        // Ambil Data Meta
+        const { from, to, cc, bcc, replyTo, messageBody, attachmentUrl, status } = email.meta || {};
+        const subject = email.content;
+        
+        // Cek Status (Default SENT jika data lama tidak punya status)
+        const isDraft = status === 'DRAFT';
 
-      {/* Email List */}
-      <div className="space-y-4">
-        {mockEmails.map((email) => (
-          <Card key={email.id} className="hover:shadow-md transition-shadow">
-            <CardContent className="p-6">
-              {/* Email Header */}
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-start gap-3 flex-1">
-                  <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
-                    <Mail className="w-5 h-5 text-gray-600" />
+        return (
+          <Card key={email.id} className={`group transition-all duration-200 ${isDraft ? 'border-yellow-300 bg-yellow-50/30' : 'hover:border-gray-400'}`}>
+            <CardContent className="p-5">
+              
+              {/* Header: User, Date & Status Badge */}
+              <div className="flex items-start justify-between mb-4 pb-3 border-b border-gray-100">
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center border ${isDraft ? 'bg-yellow-100 border-yellow-200 text-yellow-600' : 'bg-blue-50 border-blue-100 text-blue-600'}`}>
+                    <Mail className="w-5 h-5" />
                   </div>
-                  <div className="flex-1">
-                    <h4 className="font-semibold text-gray-900 mb-1">{email.subject}</h4>
-                    <p className="text-sm text-gray-600">{email.to}</p>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-semibold text-gray-900 text-sm">
+                        Sent by: {email.createdBy?.name || 'System'}
+                      </h4>
+                      
+                      {/* BADGE STATUS */}
+                      {isDraft ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-yellow-100 text-yellow-700 border border-yellow-200 uppercase tracking-wide">
+                          <Clock className="w-3 h-3" /> Draft
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-700 border border-green-200 uppercase tracking-wide">
+                          <CheckCircle2 className="w-3 h-3" /> Sent
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-1.5 text-xs text-gray-500 mt-0.5">
+                      <Calendar className="w-3 h-3" />
+                      <span>{formatCreationDate(email.createdAt)}</span>
+                    </div>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-2 text-sm text-gray-500">
-                    <Calendar className="w-4 h-4" />
-                    <span>{email.date}</span>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleEditEmail(email.id)}
-                  >
+                {/* Actions */}
+                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-500" onClick={() => onEditEmail(email.id)}>
                     <Edit className="w-4 h-4" />
                   </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleDeleteEmail(email.id)}
-                  >
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-500 hover:text-red-600" onClick={() => onDeleteEmail(email.id)}>
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 </div>
               </div>
 
-              {/* Email Content */}
-              <p className="text-sm text-gray-700 mb-4">{email.content}</p>
-
-              {/* Email Attachment Preview */}
-              {email.hasAttachment && (
-                <div className="w-full bg-gray-50 rounded-lg p-6 border-2 border-dashed border-gray-200">
-                  <div className="flex items-center justify-center">
-                    <div className="text-center">
-                      <div className="w-16 h-16 mx-auto mb-2 bg-gray-900 rounded-lg flex items-center justify-center">
-                        <svg
-                          className="w-8 h-8 text-white"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                          />
-                        </svg>
-                      </div>
-                    </div>
+              {/* Email Metadata Box */}
+              <div className="bg-white/80 rounded-md p-3 mb-4 text-sm space-y-1.5 border border-gray-200 shadow-sm">
+                <div className="grid grid-cols-[80px_1fr] gap-2 mb-2">
+                  <span className="text-gray-500 font-medium">Subject:</span>
+                  <span className="font-bold text-gray-900">{subject}</span>
+                </div>
+                <div className="grid grid-cols-[80px_1fr] gap-2 items-center">
+                  <span className="text-gray-500">To:</span>
+                  <span className="text-gray-700 font-medium">{to || '-'}</span>
+                </div>
+                {replyTo && (
+                  <div className="grid grid-cols-[80px_1fr] gap-2 items-center">
+                    <span className="text-gray-500 flex items-center gap-1"><CornerUpLeft className="w-3 h-3"/> Reply To:</span>
+                    <span className="text-blue-600 underline truncate">{replyTo}</span>
                   </div>
+                )}
+                {cc && (
+                  <div className="grid grid-cols-[80px_1fr] gap-2 items-center">
+                    <span className="text-gray-500">Cc:</span><span className="text-gray-600">{cc}</span>
+                  </div>
+                )}
+                {bcc && (
+                  <div className="grid grid-cols-[80px_1fr] gap-2 items-center">
+                    <span className="text-gray-500">Bcc:</span><span className="text-gray-600">{bcc}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Message Body */}
+              <div className="prose prose-sm max-w-none text-gray-700 whitespace-pre-wrap leading-relaxed">
+                {messageBody || <span className="text-gray-400 italic">(No content)</span>}
+              </div>
+
+              {/* Attachment */}
+              {attachmentUrl && (
+                <div className="mt-5 pt-4 border-t border-gray-100">
+                  <a href={attachmentUrl} target="_blank" className="flex items-center gap-2 p-2 bg-gray-50 rounded border hover:bg-blue-50 transition-colors w-fit text-blue-600 text-sm">
+                    <Paperclip className="w-4 h-4" /> 
+                    <span className="underline">{getFileName(attachmentUrl)}</span>
+                  </a>
                 </div>
               )}
+              
             </CardContent>
           </Card>
-        ))}
-      </div>
-
-      {/* Add/Edit Email Modal */}
-      <AddEmailModal
-        open={isAddEmailOpen}
-        onOpenChange={(open) => {
-          setIsAddEmailOpen(open);
-          if (!open) setSelectedEmail(null);
-        }}
-        emailId={selectedEmail}
-      />
+        );
+      })}
     </div>
   );
 }

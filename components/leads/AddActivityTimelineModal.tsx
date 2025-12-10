@@ -1,4 +1,7 @@
-// components/leads/AddActivityModal.tsx
+// components/leads/AddActivityTimelineModal.tsx
+'use client';
+
+import { useState, FormEvent } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -16,17 +19,70 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { ActivityType } from '@/lib/types'; // <-- Impor dari lib/types
+import { Loader2 } from 'lucide-react';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 interface AddActivityModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  leadId: string;
+  onActivityAdded: () => void; // Fungsi refresh
 }
 
-export default function AddActivityModal({ open, onOpenChange }: AddActivityModalProps) {
-  const handleSubmit = (e: React.FormEvent) => {
+export default function AddActivityTimelineModal({
+  open,
+  onOpenChange,
+  leadId,
+  onActivityAdded,
+}: AddActivityModalProps) {
+  // Set default ke CALL
+  const [type, setType] = useState<string>(ActivityType.CALL);
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const resetForm = () => {
+    setTitle('');
+    setDescription('');
+    setType(ActivityType.CALL);
+  };
+
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    console.log('Activity created');
-    onOpenChange(false);
+    setLoading(true);
+    setError('');
+
+    try {
+      const token = localStorage.getItem('token'); // SESUAIKAN
+      const res = await fetch(`${API_URL}/leads/${leadId}/activities`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          type: type,
+          content: title, // 'content' di DB adalah 'title' di form
+          meta: { description: description }, // 'meta' di DB berisi 'description'
+        }),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || 'Failed to create activity');
+      }
+
+      onActivityAdded(); // Refresh timeline
+      onOpenChange(false); // Tutup modal
+      resetForm(); // Reset form
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -37,46 +93,54 @@ export default function AddActivityModal({ open, onOpenChange }: AddActivityModa
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Activity Type & Title */}
           <div className="grid grid-cols-2 gap-4">
-            <div>
+            <div className="grid gap-1.5">
               <Label htmlFor="activityType">Activity Type</Label>
-              <Select>
+              <Select
+                value={type}
+                onValueChange={(value) => setType(value)}
+              >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select" />
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="call">Call</SelectItem>
-                  <SelectItem value="meeting">Meeting</SelectItem>
-                  <SelectItem value="email">Email</SelectItem>
-                  <SelectItem value="task">Task</SelectItem>
+                  {/* Kita filter NOTE karena punya modal sendiri */}
+                  <SelectItem value={ActivityType.CALL}>Call</SelectItem>
+                  <SelectItem value={ActivityType.MEETING}>Meeting</SelectItem>
+                  <SelectItem value={ActivityType.EMAIL}>Email</SelectItem>
+                  <SelectItem value={ActivityType.TASK}>Task</SelectItem>
+                  <SelectItem value={ActivityType.INVOICE}>Invoice</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            <div>
+            <div className="grid gap-1.5">
               <Label htmlFor="title">Title</Label>
               <Input
                 id="title"
-                placeholder="0"
+                placeholder="e.g., Follow-up call"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                required
               />
             </div>
           </div>
 
-          {/* Description */}
-          <div>
-            <Label htmlFor="description">Description</Label>
+          <div className="grid gap-1.5">
+            <Label htmlFor="description">Description (optional)</Label>
             <Textarea
               id="description"
-              placeholder="Enter Lead Description"
+              placeholder="Enter activity description..."
               rows={6}
               className="resize-none"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
             />
-            <p className="text-xs text-gray-500 text-right mt-1">0/100</p>
           </div>
+          
+          {error && <p className="text-sm text-red-500">{error}</p>}
 
-          {/* Submit Button */}
-          <Button type="submit" className="w-full bg-gray-800 hover:bg-gray-700">
-            Create Activity
+          <Button type="submit" className="w-full bg-gray-800 hover:bg-gray-700" disabled={loading}>
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Create Activity'}
           </Button>
         </form>
       </DialogContent>

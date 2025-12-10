@@ -1,6 +1,6 @@
-// components/leads/AddMeetingModal.tsx
 'use client';
 
+import { useState, useEffect, FormEvent } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -18,21 +18,202 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Bold, Italic, Underline, List, Link as LinkIcon, Image } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
+import { fetcher } from '@/lib/fetcher';
+import { LeadActivity, ActivityType, TeamMember } from '@/lib/types';
+import useSWR from 'swr';
+import { MultiSelect } from '@/components/ui/multi-select';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 interface AddMeetingModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  meetingId?: number | null;
+  leadId: string;
+  meetingId?: string | null;
+  onMeetingAdded: () => void;
 }
 
-export default function AddMeetingModal({ open, onOpenChange, meetingId }: AddMeetingModalProps) {
+// --- Helper Functions ---
+
+// Menggabungkan YYYY-MM-DD dan HH:MM menjadi ISO String (UTC)
+const combineDateTime = (date?: string, time?: string) => {
+  if (!date || !time) return null;
+  // Ini akan membuat tanggal dalam zona waktu LOKAL browser
+  // lalu .toISOString() akan mengonversinya ke UTC
+  return new Date(`${date}T${time}`).toISOString();
+};
+
+// Mengambil YYYY-MM-DD dari ISO String (dalam zona waktu LOKAL)
+const formatToDateInput = (isoString?: string) => {
+  if (!isoString) return '';
+  const date = new Date(isoString);
+  // Sesuaikan ke timezone lokal browser
+  date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
+  return date.toISOString().split('T')[0];
+};
+
+// Mengambil HH:MM dari ISO String (dalam zona waktu LOKAL)
+const formatToTimeInput = (isoString?: string) => {
+  if (!isoString) return '09:00'; // Default jam 9 pagi
+  const date = new Date(isoString);
+  // Sesuaikan ke timezone lokal browser
+  date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
+  return date.toISOString().slice(11, 16); // "HH:MM"
+};
+// ---
+
+export default function AddMeetingModal({ 
+  open, 
+  onOpenChange, 
+  leadId, 
+  meetingId, 
+  onMeetingAdded 
+}: AddMeetingModalProps) {
+  
   const isEditMode = meetingId !== null && meetingId !== undefined;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // --- State untuk semua field form ---
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [date, setDate] = useState(''); // YYYY-MM-DD
+  const [startTime, setStartTime] = useState('09:00'); // HH:MM (24-jam)
+  const [endTime, setEndTime] = useState('10:00'); // HH:MM (24-jam)
+  const [timezone, setTimezone] = useState('Asia/Jakarta');
+  const [attendees, setAttendees] = useState<string[]>([]); // Array of user IDs
+  const [location, setLocation] = useState('');
+  const [linkMeeting, setLinkMeeting] = useState('');
+  const [reminder, setReminder] = useState('15min');
+  const [outcome, setOutcome] = useState('');
+  
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  // --- Ambil data Sales untuk 'Attendees' ---
+  const { data: salesTeam, error: teamError } = useSWR<TeamMember[]>(
+    `${API_URL}/sales`, 
+    fetcher
+  );
+
+  // Opsi untuk MultiSelect
+  const salesOptions = salesTeam?.map(member => ({
+    value: member.id,
+    label: member.name,
+  })) || [];
+
+  // Opsi untuk Waktu (Select)
+  const timeOptions = Array.from({ length: 24 }, (_, i) => {
+    const hour = i;
+    const displayHour = i === 0 ? 12 : (i > 12 ? i - 12 : i);
+    const suffix = i < 12 ? 'AM' : 'PM';
+    const value = `${hour.toString().padStart(2, '0')}:00`;
+    const label = `${displayHour}:00 ${suffix}`;
+    return { value, label };
+  });
+
+  // Ambil data jika mode edit
+  useEffect(() => {
+    const fetchMeetingData = async () => {
+      if (isEditMode && open) {
+        setLoading(true);
+        try {
+          const data = await fetcher(
+            `${API_URL}/leads/${leadId}/meetings/${meetingId}`
+          ) as LeadActivity;
+          
+          const meta = data.meta || {};
+          setTitle(data.content);
+          setDescription(meta.description || '');
+          setDate(formatToDateInput(meta.startTime));
+          setStartTime(formatToTimeInput(meta.startTime));
+          setEndTime(formatToTimeInput(meta.endTime));
+          setTimezone(meta.timezone || 'Asia/Jakarta');
+          setAttendees(meta.attendees || []);
+          setLocation(meta.location || '');
+          setLinkMeeting(meta.linkMeeting || '');
+          setReminder(meta.reminder || '15min');
+          setOutcome(meta.outcome || '');
+
+        } catch (err) {
+          setError('Failed to load Meeting data');
+          toast.error('Failed to load Meeting data');
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        // Reset form jika mode create
+        setTitle('');
+        setDescription('');
+        setDate(new Date().toISOString().split('T')[0]); // Default hari ini
+        setStartTime('09:00');
+        setEndTime('10:00');
+        setTimezone('Asia/Jakarta');
+        setAttendees([]);
+        setLocation('');
+        setLinkMeeting('');
+        setReminder('15min');
+        setOutcome('');
+        setError('');
+      }
+    };
+    fetchMeetingData();
+  }, [isEditMode, open, meetingId, leadId]);
+
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    console.log(isEditMode ? 'Meeting updated' : 'Meeting created');
-    onOpenChange(false);
+    setLoading(true);
+    setError('');
+
+    const token = localStorage.getItem('token');
+    
+    // Siapkan body untuk API
+    const body = {
+      type: ActivityType.MEETING,
+      content: title, // Title disimpan di 'content'
+      meta: {         // Sisanya disimpan di 'meta'
+        description,
+        startTime: combineDateTime(date, startTime), // Gabungkan
+        endTime: combineDateTime(date, endTime),   // Gabungkan
+        timezone,
+        attendees,
+        location,
+        linkMeeting,
+        reminder,
+        outcome,
+      }
+    };
+
+    const url = isEditMode
+      ? `${API_URL}/leads/${leadId}/meetings/${meetingId}` // URL Update (PATCH)
+      : `${API_URL}/leads/${leadId}/activities`;           // URL Create (POST)
+    
+    const method = isEditMode ? 'PATCH' : 'POST';
+
+    try {
+      const res = await fetch(url, {
+        method: method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(body),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || 'Failed to save Meeting');
+      }
+
+      toast.success(isEditMode ? 'Meeting successfully updated' : 'Meeting successfully created');
+      onMeetingAdded(); // Panggil mutate (refresh list)
+      onOpenChange(false); // Tutup modal
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'There is an error');
+      toast.error(err instanceof Error ? err.message : 'There is an error');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -44,48 +225,30 @@ export default function AddMeetingModal({ open, onOpenChange, meetingId }: AddMe
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Meeting Title */}
-          <div>
+          <div className="grid gap-1.5">
             <Label htmlFor="meetingTitle">Meeting Title</Label>
             <Input
               id="meetingTitle"
               placeholder="Enter Meeting..."
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
               required
+              disabled={loading}
             />
           </div>
 
           {/* Description */}
-          <div>
+          <div className="grid gap-1.5">
             <Label htmlFor="description">Description</Label>
             <Textarea
               id="description"
               placeholder="Describe your event..."
               rows={3}
               className="resize-none"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              disabled={loading}
             />
-            
-            {/* Rich Text Toolbar */}
-            <div className="flex items-center gap-1 border-t pt-2 mt-2">
-              <button type="button" className="p-2 hover:bg-gray-100 rounded">
-                <Bold className="w-4 h-4" />
-              </button>
-              <button type="button" className="p-2 hover:bg-gray-100 rounded">
-                <Italic className="w-4 h-4" />
-              </button>
-              <button type="button" className="p-2 hover:bg-gray-100 rounded">
-                <Underline className="w-4 h-4" />
-              </button>
-              <div className="w-px h-6 bg-gray-300 mx-1" />
-              <button type="button" className="p-2 hover:bg-gray-100 rounded">
-                <List className="w-4 h-4" />
-              </button>
-              <button type="button" className="p-2 hover:bg-gray-100 rounded">
-                <LinkIcon className="w-4 h-4" />
-              </button>
-              <button type="button" className="p-2 hover:bg-gray-100 rounded">
-                <Image className="w-4 h-4" />
-              </button>
-            </div>
-            <p className="text-xs text-gray-500 text-right mt-1">0/100</p>
           </div>
 
           {/* Time and Date Section */}
@@ -94,67 +257,74 @@ export default function AddMeetingModal({ open, onOpenChange, meetingId }: AddMe
             
             {/* Date & Attendees */}
             <div className="grid grid-cols-2 gap-4">
-              <div>
+              <div className="grid gap-1.5">
                 <Label htmlFor="date">Date</Label>
-                <Input id="date" type="date" />
+                <Input 
+                  id="date" 
+                  type="date" 
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                  disabled={loading}
+                />
               </div>
-              <div>
+              <div className="grid gap-1.5">
                 <Label htmlFor="attendees">Attendees</Label>
-                <Select>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Choose Attendees" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="john">John Doe</SelectItem>
-                    <SelectItem value="jane">Jane Smith</SelectItem>
-                    <SelectItem value="bob">Bob Wilson</SelectItem>
-                  </SelectContent>
-                </Select>
+                <MultiSelect
+                  options={salesOptions}
+                  selected={attendees}
+                  onChange={setAttendees}
+                  placeholder={
+                    teamError ? "Gagal memuat tim" :
+                    !salesTeam ? "Loading tim..." : "Pilih sales..."
+                  }
+                  className="w-full"
+                  disabled={loading || !!teamError || !salesTeam}
+                />
               </div>
             </div>
 
             {/* Time Selection */}
             <div className="grid grid-cols-3 gap-4">
-              <div>
+              <div className="grid gap-1.5">
                 <Label htmlFor="startTime">Start time</Label>
-                <Select>
-                  <SelectTrigger>
-                    <SelectValue placeholder="AM/PM" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Array.from({ length: 24 }, (_, i) => (
-                      <SelectItem key={i} value={`${i}:00`}>
-                        {i < 12 ? `${i === 0 ? 12 : i}:00 AM` : `${i === 12 ? 12 : i - 12}:00 PM`}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="endTime">End time</Label>
-                <Select>
-                  <SelectTrigger>
-                    <SelectValue placeholder="AM/PM" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Array.from({ length: 24 }, (_, i) => (
-                      <SelectItem key={i} value={`${i}:00`}>
-                        {i < 12 ? `${i === 0 ? 12 : i}:00 AM` : `${i === 12 ? 12 : i - 12}:00 PM`}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="timezone">Time zone</Label>
-                <Select defaultValue="asia">
+                <Select value={startTime} onValueChange={setStartTime} disabled={loading}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="asia">Asia/Jakarta</SelectItem>
-                    <SelectItem value="america">America/New_York</SelectItem>
-                    <SelectItem value="europe">Europe/London</SelectItem>
+                    {timeOptions.map((time) => (
+                      <SelectItem key={time.value} value={time.value}>
+                        {time.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="endTime">End time</Label>
+                <Select value={endTime} onValueChange={setEndTime} disabled={loading}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {timeOptions.map((time) => (
+                      <SelectItem key={time.value} value={time.value}>
+                        {time.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="timezone">Time zone</Label>
+                <Select value={timezone} onValueChange={setTimezone} disabled={loading}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Asia/Jakarta">Asia/Jakarta</SelectItem>
+                    <SelectItem value="America/New_York">America/New_York</SelectItem>
+                    <SelectItem value="Europe/London">Europe/London</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -163,32 +333,32 @@ export default function AddMeetingModal({ open, onOpenChange, meetingId }: AddMe
 
           {/* Location & Link */}
           <div className="grid grid-cols-2 gap-4">
-            <div>
+            <div className="grid gap-1.5">
               <Label htmlFor="location">Location</Label>
-              <Select>
-                <SelectTrigger>
-                  <SelectValue placeholder="Choose Location" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="office">Office</SelectItem>
-                  <SelectItem value="online">Online</SelectItem>
-                  <SelectItem value="client">Client Location</SelectItem>
-                </SelectContent>
-              </Select>
+              <Input
+                id="location"
+                placeholder="e.g., Office or Online"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                disabled={loading}
+              />
             </div>
-            <div>
+            <div className="grid gap-1.5">
               <Label htmlFor="linkMeeting">Link Meeting</Label>
               <Input
                 id="linkMeeting"
-                placeholder="Input Link Meeting..."
+                placeholder="https://..."
+                value={linkMeeting}
+                onChange={(e) => setLinkMeeting(e.target.value)}
+                disabled={loading}
               />
             </div>
           </div>
 
           {/* Reminder */}
-          <div>
+          <div className="grid gap-1.5">
             <Label htmlFor="reminder">Reminder</Label>
-            <Select defaultValue="5min">
+            <Select value={reminder} onValueChange={setReminder} disabled={loading}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -201,21 +371,26 @@ export default function AddMeetingModal({ open, onOpenChange, meetingId }: AddMe
               </SelectContent>
             </Select>
           </div>
-
+          
           {/* Outcome */}
-          <div>
+          <div className="grid gap-1.5">
             <Label htmlFor="outcome">Outcome</Label>
             <Textarea
               id="outcome"
               placeholder="Describe the meeting outcome..."
               rows={3}
               className="resize-none"
+              value={outcome}
+              onChange={(e) => setOutcome(e.target.value)}
+              disabled={loading}
             />
           </div>
 
+          {error && <p className="text-sm text-red-500">{error}</p>}
+
           {/* Submit Button */}
-          <Button type="submit" className="w-full bg-gray-800 hover:bg-gray-700">
-            {isEditMode ? 'Update Meeting' : 'Create Meeting'}
+          <Button type="submit" className="w-full bg-gray-800 hover:bg-gray-700" disabled={loading}>
+            {loading ? <Loader2 className="animate-spin" /> : (isEditMode ? 'Update Meeting' : 'Create Meeting')}
           </Button>
         </form>
       </DialogContent>

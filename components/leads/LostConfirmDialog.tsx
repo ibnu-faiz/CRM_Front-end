@@ -1,4 +1,4 @@
-// components/leads/WonConfirmDialog.tsx
+// components/leads/LostConfirmDialog.tsx
 import {
   AlertDialog,
   AlertDialogContent,
@@ -8,23 +8,23 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
-import { Check } from 'lucide-react';
+import { XCircle } from 'lucide-react';
 
-interface WonConfirmDialogProps {
+interface LostConfirmDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   leadTitle?: string;
   onConfirm?: () => void;
 }
 
-export default function WonConfirmDialog({ 
+export default function LostConfirmDialog({ 
   open, 
   onOpenChange,
   leadTitle,
-  onConfirm
-}: WonConfirmDialogProps) {
+  onConfirm 
+}: LostConfirmDialogProps) {
   const handleConfirm = () => {
-    console.log('Lead marked as won');
+    console.log('Lead marked as lost');
     onConfirm?.();
     onOpenChange(false);
   };
@@ -33,16 +33,16 @@ export default function WonConfirmDialog({
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent className="max-w-md">
         <AlertDialogHeader className="flex flex-col items-center">
-          <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mb-4">
-            <Check className="w-8 h-8 text-white" />
+          <div className="w-16 h-16 bg-orange-500 rounded-full flex items-center justify-center mb-4">
+            <XCircle className="w-8 h-8 text-white" />
           </div>
           <AlertDialogTitle className="text-center text-xl">
-            Are you sure you want to won this leads?
+            Mark as Lost?
           </AlertDialogTitle>
           <AlertDialogDescription className="text-center">
             {leadTitle 
-              ? `Are you sure you want to mark "${leadTitle}" as won?`
-              : 'Are you sure you want to mark this lead as won?'
+              ? `Are you sure you want to mark "${leadTitle}" as lost?`
+              : 'Are you sure you want to mark this lead as lost?'
             }
           </AlertDialogDescription>
         </AlertDialogHeader>
@@ -56,7 +56,7 @@ export default function WonConfirmDialog({
           </Button>
           <Button
             onClick={handleConfirm}
-            className="flex-1 bg-gray-800 hover:bg-gray-700"
+            className="flex-1 bg-orange-500 hover:bg-orange-600"
           >
             Confirm
           </Button>
