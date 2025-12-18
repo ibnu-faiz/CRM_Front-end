@@ -372,14 +372,15 @@ export default function LeadActivities({ leadId }: LeadActivitiesProps) {
         onInvoiceAdded={handleInvoiceAdded} 
       />
 
-      <InvoicePreviewModal 
+       <InvoicePreviewModal
         open={isPreviewOpen} 
-        onOpenChange={(open) => {
-          setIsPreviewOpen(open);
-          if (!open) setSelectedInvoiceId(null); // Reset ID saat tutup
+        onOpenChange={(open) => { 
+          setIsPreviewOpen(open); 
+          if (!open) setSelectedInvoiceId(null); 
         }} 
         leadId={leadId} 
         invoiceId={selectedInvoiceId} 
+        onEditInvoice={handleEditInvoice} 
       />
 
       <AddActivityTimelineModal 

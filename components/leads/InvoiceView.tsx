@@ -75,7 +75,6 @@ export default function InvoiceView({
         <Table>
           <TableHeader>
             <TableRow className="bg-gray-50">
-              <TableHead className="w-[50px]"></TableHead>
               <TableHead>Invoice No.</TableHead>
               <TableHead>Date</TableHead>
               <TableHead>Due Date</TableHead>
@@ -94,11 +93,7 @@ export default function InvoiceView({
 
                 return (
                   <TableRow key={invoice.id} className="hover:bg-gray-50/50 transition-colors">
-                    <TableCell>
-                      <div className="p-2 bg-blue-50 text-blue-600 rounded w-fit">
-                        <FileText className="w-4 h-4" />
-                      </div>
-                    </TableCell>
+                   
                     <TableCell 
                       className="font-medium cursor-pointer text-blue-600 hover:underline"
                       onClick={() => onPreviewInvoice(invoice.id)}
