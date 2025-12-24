@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -12,10 +12,6 @@ import { Download, Printer, Loader2, Eye, Edit } from 'lucide-react';
 import useSWR from 'swr';
 import { fetcher } from '@/lib/fetcher';
 import { LeadActivity, InvoiceItem } from '@/lib/types';
-import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 interface InvoicePreviewModal {
   open: boolean;
@@ -25,27 +21,30 @@ interface InvoicePreviewModal {
   onEditInvoice: (invoiceId: string) => void;
 }
 
-// Helper Format Currency
+// --- HELPERS ---
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat('id-ID', {
     style: 'currency', currency: 'IDR', minimumFractionDigits: 0,
   }).format(amount);
 };
-
-// Helper Format Date
 const formatDate = (isoString?: string) => {
   if (!isoString) return '-';
   return new Date(isoString).toLocaleDateString('en-US', {
     month: 'long', day: 'numeric', year: 'numeric',
   });
 };
+// Helper agar enter di text area jadi baris baru
+const NewlineText = ({ text }: { text: string }) => {
+  if (!text) return null;
+  return <>{text.split('\n').map((str, i) => <div key={i}>{str}</div>)}</>;
+};
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export default function InvoicePreviewModal({ 
   open, onOpenChange, leadId, invoiceId, onEditInvoice
 }: InvoicePreviewModal) {
 
-  // Ref untuk area invoice
-  const invoiceRef = useRef<HTMLDivElement>(null);
   const [isDownloading, setIsDownloading] = useState(false);
 
   const { data: invoice, error, isLoading } = useSWR<LeadActivity>(
@@ -64,109 +63,31 @@ export default function InvoicePreviewModal({
   const tax = meta.tax || 0;
   const totalAmount = meta.totalAmount || 0;
 
+  // --- FUNGSI DOWNLOAD (PERBAIKAN TOKEN) ---
   const handleDownloadPdf = async () => {
-    const element = invoiceRef.current;
-    if (!element) return;
-
+    if (!invoiceId) return;
+    setIsDownloading(true);
+    
     try {
-      setIsDownloading(true);
-
-      // Render ke Canvas
-      // FIX 1: Handle "oklch" color issues
-      // FIX 2: Handle Cut-off issue by forcing scrollHeight
-      const canvas = await html2canvas(element, {
-        scale: 2, // High resolution
-        useCORS: true,
-        backgroundColor: '#ffffff',
-        logging: false,
-        height: element.scrollHeight, // Capture full height content
-        windowHeight: element.scrollHeight, // Ensure full window context
-        onclone: (clonedDoc) => {
-            const clonedElement = clonedDoc.getElementById('invoice-content');
-            if (clonedElement) {
-                clonedElement.style.fontVariantLigatures = 'no-common-ligatures';
-                // Force visible overflow on clone to prevent clipping
-                clonedElement.style.height = 'auto'; 
-                clonedElement.style.overflow = 'visible';
-            }
-            
-            // Inject CSS Overrides to kill CSS variables using oklch
-            const style = clonedDoc.createElement('style');
-            style.innerHTML = `
-              :root, :host, body {
-                --background: #ffffff !important;
-                --foreground: #000000 !important;
-                --border: #e5e7eb !important;
-                --input: #e5e7eb !important;
-                --primary: #000000 !important;
-                --ring: #000000 !important;
-              }
-              * {
-                border-color: #e5e7eb;
-              }
-            `;
-            clonedDoc.head.appendChild(style);
-
-            // Bruteforce cleanup
-            const allElements = clonedDoc.querySelectorAll('*');
-            allElements.forEach((el) => {
-               if (el instanceof HTMLElement) {
-                 const computed = window.getComputedStyle(el);
-                 if (computed.backgroundColor && computed.backgroundColor.includes('oklch')) {
-                    el.style.backgroundColor = '#ffffff';
-                 }
-                 if (computed.borderColor && computed.borderColor.includes('oklch')) {
-                    el.style.borderColor = '#e5e7eb';
-                 }
-                 if (computed.color && computed.color.includes('oklch')) {
-                    el.style.color = '#000000';
-                 }
-               }
-            });
-        }
-      });
-
-      const imgData = canvas.toDataURL('image/png');
-      
-      // Setup PDF (A4)
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const pdfWidth = pdf.internal.pageSize.getWidth(); // 210mm
-      const pdfHeight = pdf.internal.pageSize.getHeight(); // 297mm
-      
-      const imgWidth = canvas.width;
-      const imgHeight = canvas.height;
-
-      // FIX 3: "Fit to Page" Logic
-      // Hitung rasio scaling agar muat di lebar DAN tinggi A4
-      const widthRatio = pdfWidth / imgWidth;
-      const heightRatio = pdfHeight / imgHeight;
-      
-      // Gunakan rasio terkecil supaya gambar tidak terpotong (aspect ratio preserved)
-      // Jika konten sangat panjang, ini akan mengecilkan konten agar muat 1 halaman.
-      const ratio = Math.min(widthRatio, heightRatio);
-      
-      const finalWidth = imgWidth * ratio;
-      const finalHeight = imgHeight * ratio;
-
-      // Center horizontal
-      const x = (pdfWidth - finalWidth) / 2;
-      const y = 0; // Top align
-
-      // Render image ke PDF
-      pdf.addImage(imgData, 'PNG', x, y, finalWidth, finalHeight);
-      
-      pdf.save(`Invoice-${invoice?.content || 'document'}.pdf`);
-
+       // 1. AMBIL TOKEN (PENTING!)
+       const token = localStorage.getItem('token'); 
+       
+       // 2. KIRIM TOKEN KE URL
+       const pdfUrl = `/api/invoices/${invoiceId}/pdf?leadId=${leadId}&token=${token}`;
+       
+       // 3. Buka di tab baru
+       window.open(pdfUrl, '_blank');
+       
     } catch (error) {
-      console.error('Failed to generate PDF:', error);
+       console.error("Download failed", error);
     } finally {
-      setIsDownloading(false);
+       setIsDownloading(false);
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[95vh] overflow-hidden bg-[#d1d5db] p-4"> {/* bg-gray-300 -> Hex */}
+      <DialogContent className="max-w-4xl max-h-[95vh] overflow-hidden bg-[#d1d5db] p-4">
         
         {/* Header Modal */}
          <DialogHeader className="flex flex-row items-center justify-between pb-3 px-7">
@@ -175,29 +96,13 @@ export default function InvoicePreviewModal({
             <span className="text-lg font-semibold">Preview</span>
           </DialogTitle>
           <div className="flex items-center gap-2">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="gap-2 h-8"
-              onClick={() => {
-                if (invoiceId) {
-                  onOpenChange(false);
-                  onEditInvoice(invoiceId);
-                }
-              }}
-            >
+            <Button variant="ghost" size="sm" className="gap-2 h-8" onClick={() => { if (invoiceId) { onOpenChange(false); onEditInvoice(invoiceId); } }}>
               <Edit className="w-3.5 h-3.5" /> Edit
             </Button>
             <Button variant="ghost" size="icon" className="h-8 w-8">
               <Printer className="w-4 h-4" />
             </Button>
-            <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-8 w-8"
-                onClick={handleDownloadPdf}
-                disabled={isDownloading || isLoading}
-            >
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleDownloadPdf} disabled={isDownloading || isLoading}>
                {isDownloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
             </Button>
           </div>
@@ -208,17 +113,14 @@ export default function InvoicePreviewModal({
           {isLoading && <div className="flex justify-center h-96 items-center"><Loader2 className="animate-spin w-8 h-8" /></div>}
           
           {!isLoading && invoice && (
-            // START INVOICE PAPER
-            // PENTING: Semua class warna HARUS HEX (e.g., text-[#000000]) untuk menghindari error "oklch" di html2canvas
+            // KERTAS A4 PREVIEW
             <div 
-              id="invoice-content"
-              ref={invoiceRef}
-              className="bg-[#ffffff] rounded-sm border border-[#f3f4f6] p-6 space-y-6 text-[#111827] mb-4 mx-auto max-w-[210mm]"
-              style={{ backgroundColor: '#ffffff', color: '#111827' }} // Explicit inline styles as backup
+              className="bg-[#ffffff] rounded-sm border border-[#f3f4f6] p-10 space-y-8 text-[#111827] mx-auto max-w-[210mm] min-h-[297mm] flex flex-col shadow-lg"
+              style={{ backgroundColor: '#ffffff', color: '#111827' }}
             >
               
-              {/* 1. HEADER INVOICE */}
-              <div className="flex items-start justify-between gap-4">
+              {/* 1. Header Invoice */}
+               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
                   <h1 className="text-2xl font-bold text-[#000000] mb-1">Invoice</h1> {/* text-black -> text-[#000000] */}
                   <p className="text-sm text-[#6b7280] font-medium tracking-wide break-all">
@@ -229,11 +131,10 @@ export default function InvoicePreviewModal({
                   <h2 className="text-xl font-bold text-[#1f2937] whitespace-nowrap">CRM cmlabs</h2>
                 </div>
               </div>
+              <div className="border-t border-gray-400 mb-6"></div>
 
-              <hr className="border-[#f3f4f6]" />
-
-              {/* 2. BILLED BY & BILLED TO */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* 2. Alamat (Billed By & To) */}
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Kolom Kiri: Billed By */}
                 <div className="min-w-0 flex flex-col">
                   <h4 className="text-sm font-semibold text-[#111827] mb-2">Billed By:</h4>
@@ -267,7 +168,7 @@ export default function InvoicePreviewModal({
                 </div>
               </div>
 
-              {/* 3. DATES */}
+              {/* 3. Tanggal */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <h4 className="text-sm font-semibold text-[#111827] mb-1">Date Invoice:</h4>
@@ -283,7 +184,8 @@ export default function InvoicePreviewModal({
                 </div>
               </div>
 
-              {/* 4. ITEMS TABLE */}
+
+              {/* 4. Tabel Item */}
               <div className="rounded-lg overflow-visible border border-[#f3f4f6]">
                 <table className="w-full table-auto">
                   <thead className="bg-[#f3f4f6]">
@@ -306,9 +208,10 @@ export default function InvoicePreviewModal({
                   </tbody>
                 </table>
               </div>
+              <div className="border-t border-gray-400 my-2"></div>
 
-              {/* 5. TOTALS & NOTES */}
-              <div className="space-y-4 pt-2">
+              {/* 5. Total Calculation */}
+             <div className="space-y-4 pt-2">
                 {/* Totals */}
                 <div className="bg-[#f9fafb] p-4 rounded-lg border border-[#f3f4f6]">
                   <div className="space-y-3">
@@ -339,12 +242,17 @@ export default function InvoicePreviewModal({
                 )}
               </div>
 
-              {/* 7. FOOTER */}
-              <div className="flex flex-col sm:flex-row items-center justify-between pt-6 gap-3 text-xs font-bold text-[#111827] uppercase tracking-widest">
-                <p>THANK YOU!</p>
-                <div className="flex gap-4">
-                  <span>088897233</span>
-                  <span>cmlabs</span>
+              {/* Spacer untuk mendorong footer ke bawah */}
+              <div className="flex-1"></div>
+
+
+              {/* 7. Footer */}
+              <div className="mt-8 pt-8 border-t border-gray-400 text-center text-xs text-gray-400">
+                <p className="font-bold mb-1 text-gray-900">THANK YOU FOR YOUR BUSINESS!</p>
+                <div className="flex justify-center gap-4 mt-2">
+                   <span>088897233</span>
+                   <span>•</span>
+                   <span>cmlabs</span>
                 </div>
               </div>
 
