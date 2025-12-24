@@ -34,6 +34,7 @@
     "jspdf": "^3.0.4",
     "lucide-react": "^0.545.0",
     "next": "15.5.4",
+    "puppeteer": "^24.34.0",
     "react": "19.1.0",
     "react-calendar": "^6.0.0",
     "react-dom": "19.1.0",
