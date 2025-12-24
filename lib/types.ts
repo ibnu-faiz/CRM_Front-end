@@ -119,6 +119,9 @@ export interface Lead {
   wonAt: string | null;
   lostAt: string | null;
   isArchived?: boolean;
+  sourceOrigin?: string | null;
+  sourceChannel?: string | null;
+  sourceChannelId?: string | null;
   createdById: string;
   assignedUsers: UserSimple[];
   createdBy?: {
@@ -143,4 +146,7 @@ export interface CreateLeadData {
   dueDate?: string;
   description?: string;
   assignedToId?: string;
+  sourceOrigin?: string | null;
+  sourceChannel?: string | null;
+  sourceChannelId?: string | null;
 }
