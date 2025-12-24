@@ -130,18 +130,18 @@ export default function AddTeamModal({ open, onOpenChange, onTeamAdded }: AddTea
           {/* Full Name */}
           <div className="grid gap-1.5">
             <Label htmlFor="fullname">Full Name*</Label>
-            <Input id="fullname" name="fullname" placeholder="Input Your Full Name Here" required disabled={loading} />
+            <Input id="fullname" name="fullname" placeholder="Input Name Here" required disabled={loading} />
           </div>
 
           {/* Email & Phone */}
           <div className="grid grid-cols-2 gap-4">
             <div className="grid gap-1.5">
               <Label htmlFor="email">E-mail*</Label>
-              <Input id="email" name="email" type="email" placeholder="Input Your E-mail Here" required disabled={loading} />
+              <Input id="email" name="email" type="email" placeholder="Input E-mail Here" required disabled={loading} />
             </div>
             <div className="grid gap-1.5">
               <Label htmlFor="phone">Phone*</Label>
-              <Input id="phone" name="phone" type="tel" placeholder="Input Your Phone Number Here" required disabled={loading} />
+              <Input id="phone" name="phone" type="tel" placeholder="Input Phone Number Here" required disabled={loading} />
             </div>
           </div>
           
