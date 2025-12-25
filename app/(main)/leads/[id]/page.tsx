@@ -128,10 +128,20 @@ export default function LeadDetailPage({
     <div className="p-6">
       <Toaster position="top-right" />
       {/* Back Button */}
-      <Button variant="ghost" onClick={handleBack} className="mb-4 -ml-2">
-        <ChevronLeft className="w-4 h-4 mr-2" />
-        Back to leads
-      </Button>
+      <div className="flex items-center gap-3 mb-4">
+        {/* 1. Tombol Bulat (Hanya Ikon) */}
+        <Button
+          variant="outline"
+          size="icon" // Penting: Biar ukurannya kotak presisi
+          onClick={handleBack}
+          className="rounded-full" // Biar jadi lingkaran sempurna
+        >
+          <ChevronLeft className="w-5 h-5" />
+        </Button>
+
+        {/* 2. Teks Nama (Di Luar Tombol) */}
+        <span className="text-sm font-medium text-gray-900">Back to Leads</span>
+      </div>
 
       {/* --- KOTAK HEADER BARU --- */}
       <Card className="mb-6">
@@ -154,32 +164,34 @@ export default function LeadDetailPage({
             {/* Bagian Kanan: Status, Label, dan Tombol Delete */}
             <div className="flex items-center gap-2">
               <div>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  {/* UBAH STYLE DI SINI: Menggunakan variant="outline" agar sama dengan tombol Delete */}
-                  <Button variant="outline" className="gap-2 capitalize">
-                    <Check className="w-4 h-4" />
-                    <span>{formatStatus(lead.status)}</span>
-                    <ChevronDown className="w-4 h-4 ml-1 opacity-50" />
-                  </Button>
-                </DropdownMenuTrigger>
-                
-                <DropdownMenuContent align="start" className="w-56">
-                  {ALL_STATUSES.map((status) => (
-                    <DropdownMenuItem 
-                      key={status}
-                      onClick={() => handleStatusChange(status)}
-                      className="flex items-center justify-between cursor-pointer py-2"
-                    >
-                      <span className="capitalize">{formatStatus(status)}</span>
-                      {lead.status === status && (
-                        <Check className="w-4 h-4 text-green-600" />
-                      )}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    {/* UBAH STYLE DI SINI: Menggunakan variant="outline" agar sama dengan tombol Delete */}
+                    <Button variant="outline" className="gap-2 capitalize">
+                      <Check className="w-4 h-4" />
+                      <span>{formatStatus(lead.status)}</span>
+                      <ChevronDown className="w-4 h-4 ml-1 opacity-50" />
+                    </Button>
+                  </DropdownMenuTrigger>
+
+                  <DropdownMenuContent align="start" className="w-56">
+                    {ALL_STATUSES.map((status) => (
+                      <DropdownMenuItem
+                        key={status}
+                        onClick={() => handleStatusChange(status)}
+                        className="flex items-center justify-between cursor-pointer py-2"
+                      >
+                        <span className="capitalize">
+                          {formatStatus(status)}
+                        </span>
+                        {lead.status === status && (
+                          <Check className="w-4 h-4 text-green-600" />
+                        )}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
 
               {lead.label && (
                 <div>
@@ -198,7 +210,8 @@ export default function LeadDetailPage({
                 size="icon"
                 onClick={() => setIsDeleteDialogOpen(true)}
               >
-                <Trash2 className="w-4 h-4" /> {/* Adjusted icon size to standard */}
+                <Trash2 className="w-4 h-4" />{" "}
+                {/* Adjusted icon size to standard */}
               </Button>
             </div>
           </div>

@@ -18,6 +18,7 @@ import CreateLeadModal from "@/components/leads/CreateLeadModal";
 import DeleteLeadDialog from "@/components/leads/DeleteLeadDialog";
 import WonConfirmDialog from "@/components/leads/WonConfirmDialog";
 import LostConfirmDialog from "@/components/leads/LostConfirmDialog";
+import LeadsDropZone from "@/components/leads/LeadsDropZone"; // Import DropZone
 import { useLeadsByStatus } from "@/hooks/useLeads";
 import { LeadStatus, Lead, LeadPriority } from "@/lib/types";
 import { Toaster, toast } from "sonner";
@@ -35,15 +36,11 @@ import { Badge } from "@/components/ui/badge";
 export default function LeadsPage() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-
   const [isViewInitialized, setIsViewInitialized] = useState(false);
-
   const [isAIChatOpen, setIsAIChatOpen] = useState(false);
-
-  // 1. State Baru: Mode Arsip
   const [showArchived, setShowArchived] = useState(false);
 
-  // MASUKKAN showArchived KE SINI
+  // Hook Data
   const { grouped, stats, loading, createLead, updateLead, deleteLead } =
     useLeadsByStatus(showArchived);
 
@@ -57,34 +54,30 @@ export default function LeadsPage() {
     id: string;
     title: string;
   } | null>(null);
+  
+  // State Drag & Drop
   const [dragOverZone, setDragOverZone] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false); 
 
   const filteredGrouped: Record<string, Lead[]> = {};
 
   if (grouped) {
     Object.keys(grouped).forEach((key) => {
-      // Casting key
       const statusKey = key as LeadStatus;
-
       if (grouped[statusKey]) {
         filteredGrouped[key] = grouped[statusKey].filter((lead: Lead) => {
-          // A. Filter Arsip
           const matchesArchive = showArchived
             ? lead.isArchived === true
             : !lead.isArchived;
-
-          // B. Filter Priority (Jika ada yang dipilih)
           const matchesPriority =
             selectedPriorities.length === 0 ||
             selectedPriorities.includes(lead.priority);
-
           return matchesArchive && matchesPriority;
         });
       }
     });
   }
 
-  // --- Handler Filter ---
   const togglePriority = (priority: string) => {
     setSelectedPriorities((prev) =>
       prev.includes(priority)
@@ -93,23 +86,70 @@ export default function LeadsPage() {
     );
   };
 
-
-
-  // 3. HANDLE ARCHIVE ACTION (Dari Card)
   const handleArchiveLead = async (id: string) => {
     try {
-      // Kita update status ke kebalikannya.
-      // Jika sedang di menu Active (showArchived=false), kita set true -> Dia akan hilang.
-      // Jika sedang di menu Archive (showArchived=true), kita set false -> Dia akan hilang (pindah ke active).
       await updateLead(id, { isArchived: !showArchived } as any);
-
-      // Data otomatis refresh karena hook useLeadsByStatus memantau perubahan
     } catch (error) {
       console.error(error);
     }
   };
 
-  // --- Logic Scroll & Drag Drop (Tetap Sama) ---
+  // --- Logic Drag Drop Handlers (Bubbling) ---
+  const handleDragStart = () => {
+    setIsDragging(true);
+  };
+
+  const handleDragEnd = () => {
+    setIsDragging(false);
+    setDragOverZone(null);
+  };
+
+  const handleDragOver = (e: React.DragEvent, zone: string) => {
+    e.preventDefault();
+    setDragOverZone(zone);
+  };
+
+  const handleDragLeave = () => {
+    setDragOverZone(null);
+  };
+
+  const handleDrop = (e: React.DragEvent, zone: "delete" | "won" | "lost") => {
+    e.preventDefault();
+    setIsDragging(false); 
+    setDragOverZone(null);
+
+    const leadId = e.dataTransfer.getData("leadId");
+    const leadTitle = e.dataTransfer.getData("leadTitle");
+    
+    if (leadId) {
+        setSelectedLead({ id: leadId, title: leadTitle });
+        if (zone === "delete") setIsDeleteDialogOpen(true);
+        else if (zone === "won") setIsWonDialogOpen(true);
+        else if (zone === "lost") setIsLostDialogOpen(true);
+    }
+  };
+
+  // --- Backend Actions ---
+  const handleDeleteConfirm = async () => {
+    if (selectedLead) {
+      await deleteLead(selectedLead.id); 
+      setSelectedLead(null);
+    }
+  };
+  const handleWonConfirm = async () => {
+    if (selectedLead) {
+      await updateLead(selectedLead.id, { status: LeadStatus.WON }); 
+      setSelectedLead(null);
+    }
+  };
+  const handleLostConfirm = async () => {
+    if (selectedLead) {
+      await updateLead(selectedLead.id, { status: LeadStatus.LOST }); 
+      setSelectedLead(null);
+    }
+  };
+
+  // --- Scroll Logic ---
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [scrollProgress, setScrollProgress] = useState(0);
 
@@ -135,49 +175,11 @@ export default function LeadsPage() {
     }
   };
 
-  const handleDragOver = (e: React.DragEvent, zone: string) => {
-    e.preventDefault();
-    setDragOverZone(zone);
-  };
-  const handleDragLeave = () => {
-    setDragOverZone(null);
-  };
-  const handleDrop = (e: React.DragEvent, zone: "delete" | "won" | "lost") => {
-    e.preventDefault();
-    const leadId = e.dataTransfer.getData("leadId");
-    const leadTitle = e.dataTransfer.getData("leadTitle");
-    setDragOverZone(null);
-    setSelectedLead({ id: leadId, title: leadTitle });
-    if (zone === "delete") setIsDeleteDialogOpen(true);
-    else if (zone === "won") setIsWonDialogOpen(true);
-    else if (zone === "lost") setIsLostDialogOpen(true);
-  };
-
-  const handleDeleteConfirm = async () => {
-    if (selectedLead) {
-      await deleteLead(selectedLead.id);
-      setSelectedLead(null);
-    }
-  };
-  const handleWonConfirm = async () => {
-    if (selectedLead) {
-      await updateLead(selectedLead.id, { status: LeadStatus.WON });
-      setSelectedLead(null);
-    }
-  };
-  const handleLostConfirm = async () => {
-    if (selectedLead) {
-      await updateLead(selectedLead.id, { status: LeadStatus.LOST });
-      setSelectedLead(null);
-    }
-  };
-
   useEffect(() => {
     const savedView = localStorage.getItem("leadsViewMode");
     if (savedView === "grid" || savedView === "list") {
       setViewMode(savedView);
     }
-    // Tandai bahwa inisialisasi selesai, UI boleh ditampilkan sekarang
     setIsViewInitialized(true);
   }, []);
 
@@ -192,7 +194,6 @@ export default function LeadsPage() {
   if (!isViewInitialized) {
     return (
       <div className="h-[calc(100vh-65px)] flex items-center justify-center bg-gray-50/30">
-        {/* Spinner halus agar user tahu sedang memuat preferensi */}
         <Loader2 className="w-8 h-8 animate-spin text-gray-300" />
       </div>
     );
@@ -226,7 +227,7 @@ export default function LeadsPage() {
             <Button
               variant="outline"
               className="gap-2"
-              onClick={() => setIsAIChatOpen(!isAIChatOpen)} // Toggle buka/tutup
+              onClick={() => setIsAIChatOpen(!isAIChatOpen)}
             >
               <Sparkles className="w-4 h-4" /> AI Chat
             </Button>
@@ -235,10 +236,11 @@ export default function LeadsPage() {
 
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <div className="flex items-center bg-white border border-gray-200 rounded-lg p-1 shadow-sm">
-              <button
+            <div className="flex items-center bg-white border border-gray-200 rounded-full p-1 shadow-sm">
+             <button
                 onClick={() => changeViewMode("grid")}
-                className={`p-2 rounded-md transition-all ${
+                // UBAH rounded-md JADI rounded-full DI SINI
+                className={`p-2 rounded-full transition-all ${
                   viewMode === "grid"
                     ? "bg-gray-800 text-white shadow-md"
                     : "text-gray-700 hover:text-gray-900 hover:bg-gray-100"
@@ -249,7 +251,8 @@ export default function LeadsPage() {
 
               <button
                 onClick={() => changeViewMode("list")}
-                className={`p-2 rounded-md transition-all ${
+                // UBAH rounded-md JADI rounded-full DI SINI
+                className={`p-2 rounded-full transition-all ${
                   viewMode === "list"
                     ? "bg-gray-800 text-white shadow-md"
                     : "text-gray-700 hover:text-gray-900 hover:bg-gray-100"
@@ -259,36 +262,28 @@ export default function LeadsPage() {
               </button>
             </div>
 
-            {/* 4. TOMBOL ARCHIVE (Style disamakan dengan Filter) */}
-             <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => setShowArchived(!showArchived)}
-                className={`gap-2 ${
-                  showArchived
-                    ? "bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 hover:text-blue-800" // Style saat Aktif
-                    : "" // Style saat Tidak Aktif (Default Outline)
-                }`}
-             >
-                {/* Ikon berubah: ArchiveRestore saat aktif, Archive biasa saat tidak */}
-                {showArchived ? (
-                    <Archive className="w-4 h-4" />
-                ) : (
-                    <Archive className="w-4 h-4" />
-                )}
-                
-                {/* Teks berubah */}
-                {showArchived ? "Show Active" : "Archive"}
-             </Button>
+            <Button 
+              variant="outline" 
+              // size="sm" 
+              onClick={() => setShowArchived(!showArchived)}
+              className={`gap-2 ${
+                showArchived
+                  ? "bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 hover:text-blue-800"
+                  : ""
+              }`}
+            >
+              <Archive className="w-4 h-4" />
+              {showArchived ? "Show Active" : "Archive"}
+            </Button>
 
             <Popover>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
-                  size="sm"
+                  // size="lg"
                   className={`gap-2 ${
                     selectedPriorities.length > 0
-                      ? "bg-blue-50 border-blue-200 text-blue-700"
+                      ? "bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 hover:text-blue-800"
                       : ""
                   }`}
                 >
@@ -307,7 +302,7 @@ export default function LeadsPage() {
                         {selectedPriorities.length > 2 ? (
                           <Badge
                             variant="secondary"
-                            className="rounded-sm px-1 font-normal"
+                            className="rounded-full px-1 font-normal"
                           >
                             {selectedPriorities.length} selected
                           </Badge>
@@ -316,7 +311,7 @@ export default function LeadsPage() {
                             <Badge
                               variant="secondary"
                               key={option}
-                              className="rounded-sm px-1 font-normal capitalize"
+                              className="rounded-full px-1 font-normal capitalize"
                             >
                               {option.toLowerCase()}
                             </Badge>
@@ -365,12 +360,13 @@ export default function LeadsPage() {
 
           {viewMode === "grid" && (
             <div className="flex items-center gap-2">
-              <button
+              <Button
+                variant="outline"
                 onClick={() => scroll("left")}
-                className="p-2 hover:bg-gray-100 rounded-lg active:bg-gray-200"
+                className="p-2 hover:bg-gray-100 rounded-full active:bg-gray-200"
               >
                 <ChevronLeft className="w-5 h-5 text-gray-600" />
-              </button>
+              </Button>
 
               <div className="w-64 h-2 bg-gray-200 rounded-full overflow-hidden relative">
                 <div
@@ -383,22 +379,25 @@ export default function LeadsPage() {
                 />
               </div>
 
-              <button
+              <Button
                 onClick={() => scroll("right")}
-                className="p-2 hover:bg-gray-100 rounded-lg active:bg-gray-200"
+                variant="outline"
+                className="p-2 hover:bg-gray-100 rounded-full active:bg-gray-200"
               >
                 <ChevronRight className="w-5 h-5 text-gray-600" />
-              </button>
+              </Button>
             </div>
           )}
         </div>
       </div>
 
-      {/* KANBAN BOARD (Menggunakan filteredGrouped) */}
       <div
         ref={scrollContainerRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-auto px-6 pb-32 scroll-smooth"
+        className="flex-1 overflow-auto px-6 pb-32 scroll-smooth no-scrollbar"
+        // Handler bubbling drag dari card
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
       >
         <LeadsKanban
           grouped={filteredGrouped}
@@ -410,67 +409,16 @@ export default function LeadsPage() {
         />
       </div>
 
-      {/* Footer Drag Zone (Sama seperti sebelumnya) */}
-      <div className="fixed bottom-0 left-0 lg:left-64 right-0 p-4 bg-white/90 backdrop-blur-md border-t border-gray-200 z-50 shadow-lg">
-        <div className="max-w-full mx-auto grid grid-cols-3 gap-4">
-          <div
-            className={`border-2 border-dashed rounded-lg p-4 text-center transition-all ${
-              dragOverZone === "delete"
-                ? "border-red-500 bg-red-50"
-                : "border-gray-300 hover:border-gray-400"
-            }`}
-            onDragOver={(e) => handleDragOver(e, "delete")}
-            onDragLeave={handleDragLeave}
-            onDrop={(e) => handleDrop(e, "delete")}
-          >
-            <p
-              className={`font-medium ${
-                dragOverZone === "delete" ? "text-red-600" : "text-gray-500"
-              }`}
-            >
-              DELETE
-            </p>
-          </div>
-          <div
-            className={`border-2 border-dashed rounded-lg p-4 text-center transition-all ${
-              dragOverZone === "won"
-                ? "border-green-500 bg-green-50"
-                : "border-gray-300 hover:border-gray-400"
-            }`}
-            onDragOver={(e) => handleDragOver(e, "won")}
-            onDragLeave={handleDragLeave}
-            onDrop={(e) => handleDrop(e, "won")}
-          >
-            <p
-              className={`font-medium ${
-                dragOverZone === "won" ? "text-green-600" : "text-gray-500"
-              }`}
-            >
-              WON
-            </p>
-          </div>
-          <div
-            className={`border-2 border-dashed rounded-lg p-4 text-center transition-all ${
-              dragOverZone === "lost"
-                ? "border-orange-500 bg-orange-50"
-                : "border-gray-300 hover:border-gray-400"
-            }`}
-            onDragOver={(e) => handleDragOver(e, "lost")}
-            onDragLeave={handleDragLeave}
-            onDrop={(e) => handleDrop(e, "lost")}
-          >
-            <p
-              className={`font-medium ${
-                dragOverZone === "lost" ? "text-orange-600" : "text-gray-500"
-              }`}
-            >
-              LOST
-            </p>
-          </div>
-        </div>
-      </div>
+      {/* POSISI TERPISAH: Di luar scroll container, tapi di dalam div utama (relative) 
+          Agar 'absolute bottom-0' menempel di dasar layar */}
+      <LeadsDropZone 
+        isDragging={isDragging}
+        dragOverZone={dragOverZone}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+      />
 
-      {/* Modals (Sama) */}
       <CreateLeadModal
         open={isCreateModalOpen}
         onOpenChange={setIsCreateModalOpen}
