@@ -89,7 +89,7 @@ export default function AIChatWidget({ isOpen, onClose }: AIChatWidgetProps) {
       - Total Nilai Potensi (Deal Value): ${totalValue.toLocaleString()}
       - Jumlah Leads High Priority: ${highPriority}
       
-      DAFTAR 5 LEADS TERBARU:
+      DAFTAR LEADS TERBARU:
       ${recentLeads}
       
       DAFTAR ANGGOTA TIM:
