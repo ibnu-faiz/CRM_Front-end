@@ -24,10 +24,10 @@ export default function LogoutConfirmDialog({
 }: LogoutConfirmDialogProps) {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent className="max-w-sm w-[90%] rounded-lg"> {/* Responsif width */}
-        <AlertDialogHeader className="flex flex-col items-center space-y-4">
-          <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-            <LogOut className="w-6 h-6 text-red-600" />
+     <AlertDialogContent className="max-w-md">
+        <AlertDialogHeader className="flex flex-col items-center">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
+            <LogOut className="w-8 h-8 text-red-600" />
           </div>
           <div className="text-center space-y-2">
             <AlertDialogTitle className="text-xl">Sign out?</AlertDialogTitle>
