@@ -87,7 +87,7 @@ export default function TeamPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <Input 
               placeholder="Search team..." 
-              className="pl-10" 
+              className="pl-9 bg-gray-50 border-gray-200 h-9 text-sm rounded-full focus-visible:ring-1"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -103,7 +103,7 @@ export default function TeamPage() {
       </div>
 
       {/* Team Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-6">
         {filteredMembers?.map((member) => (
           <TeamCard 
             key={member.id} 
@@ -112,7 +112,9 @@ export default function TeamPage() {
           />
         ))}
         {filteredMembers?.length === 0 && (
-            <p className="col-span-full text-center text-gray-500 py-10">No team members found.</p>
+            <div className="col-span-full flex flex-col items-center justify-center py-16 text-gray-500 bg-gray-50/50 rounded-xl border border-dashed border-gray-200">
+                <p>No team members found.</p>
+            </div>
         )}
       </div>
 
