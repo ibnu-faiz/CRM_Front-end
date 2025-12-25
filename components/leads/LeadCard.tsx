@@ -3,6 +3,7 @@ import { Lead, LeadPriority } from "@/lib/types";
 import { Calendar, Archive, ArchiveRestore } from "lucide-react"; // Import icon Archive
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useRouter } from "next/navigation";
+import { Button } from "../ui/button";
 
 interface LeadCardProps {
   lead: Lead;
@@ -69,9 +70,10 @@ export default function LeadCard({ lead, onArchive }: LeadCardProps) {
 
         {/* Tombol Archive (Hanya muncul saat hover di desktop, atau selalu di mobile) */}
         {onArchive && (
-          <button
+          <Button
             onClick={handleArchiveClick}
-            className={`p-1.5 rounded-md transition-colors opacity-0 group-hover:opacity-100 ${
+            variant="outline"
+            className={`p-2 rounded-full transition-colors ${
               lead.isArchived
                 ? "bg-blue-50 text-blue-600 hover:bg-blue-100" // Warna untuk Restore (Unarchive)
                 : "text-gray-400 hover:text-gray-900 hover:bg-gray-100" // Warna untuk Archive biasa
@@ -83,7 +85,7 @@ export default function LeadCard({ lead, onArchive }: LeadCardProps) {
             ) : (
               <Archive className="w-4 h-4" />
             )}
-          </button>
+          </Button>
         )}
       </div>
 

@@ -1,8 +1,9 @@
 "use client";
 import { Lead, LeadPriority } from "@/lib/types";
-import { Calendar, Archive, ArchiveRestore } from "lucide-react";
+import { CalendarClock, Archive, ArchiveRestore } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useRouter } from "next/navigation";
+import { Button } from "../ui/button";
 
 interface LeadListItemProps {
   lead: Lead;
@@ -22,26 +23,50 @@ const labelColors: Record<string, string> = {
   deal: "bg-green-100 text-green-700",
 };
 
-const stageConfig: Record<string, { color: string; iconColor: string; textColor: string }> = {
-  LEAD_IN: { color: 'bg-gray-100', iconColor: 'bg-gray-500', textColor: 'text-gray-700' },
-  CONTACT_MADE: { color: 'bg-blue-100', iconColor: 'bg-blue-500', textColor: 'text-blue-700' },
-  NEED_IDENTIFIED: { color: 'bg-purple-100', iconColor: 'bg-purple-500', textColor: 'text-purple-700' },
-  PROPOSAL_MADE: { color: 'bg-yellow-100', iconColor: 'bg-yellow-500', textColor: 'text-yellow-700' },
-  NEGOTIATION: { color: 'bg-orange-100', iconColor: 'bg-orange-500', textColor: 'text-orange-700' },
-  CONTRACT_SEND: { color: 'bg-pink-100', iconColor: 'bg-pink-500', textColor: 'text-pink-700' },
-  WON: { color: 'bg-green-100', iconColor: 'bg-green-500', textColor: 'text-green-700' },
-  LOST: { color: 'bg-red-100', iconColor: 'bg-red-500', textColor: 'text-red-700' },
+const stageConfig: Record<string, { color: string; textColor: string }> = {
+  LEAD_IN: {
+    color: "bg-gray-100",
+    textColor: "text-gray-700",
+  },
+  CONTACT_MADE: {
+    color: "bg-blue-100",
+    textColor: "text-blue-700",
+  },
+  NEED_IDENTIFIED: {
+    color: "bg-purple-100",
+    textColor: "text-purple-700",
+  },
+  PROPOSAL_MADE: {
+    color: "bg-yellow-100",
+    textColor: "text-yellow-700",
+  },
+  NEGOTIATION: {
+    color: "bg-orange-100",
+    textColor: "text-orange-700",
+  },
+  CONTRACT_SEND: {
+    color: "bg-pink-100",
+    textColor: "text-pink-700",
+  },
+  WON: {
+    color: "bg-green-100",
+    textColor: "text-green-700",
+  },
+  LOST: {
+    color: "bg-red-100",
+    textColor: "text-red-700",
+  },
 };
 
 const stageLabels: Record<string, string> = {
-  LEAD_IN: 'Lead In',
-  CONTACT_MADE: 'Contact Made',
-  NEED_IDENTIFIED: 'Need Identified',
-  PROPOSAL_MADE: 'Proposal Made',
-  NEGOTIATION: 'Negotiation',
-  CONTRACT_SEND: 'Contract Send',
-  WON: 'Won',
-  LOST: 'Lost',
+  LEAD_IN: "Lead In",
+  CONTACT_MADE: "Contact Made",
+  NEED_IDENTIFIED: "Need Identified",
+  PROPOSAL_MADE: "Proposal Made",
+  NEGOTIATION: "Negotiation",
+  CONTRACT_SEND: "Contract Send",
+  WON: "Won",
+  LOST: "Lost",
 };
 
 export default function LeadListItem({ lead, onArchive }: LeadListItemProps) {
@@ -93,14 +118,17 @@ export default function LeadListItem({ lead, onArchive }: LeadListItemProps) {
 
       {/* Lead Title & Company */}
       <div className="col-span-3 flex flex-col justify-center gap-1">
-        <h4 className="font-bold text-base text-gray-900 line-clamp-1">{lead.title}</h4>
-        <p className="text-xs text-gray-500 truncate">{lead.company || '-'}</p>
+        <h4 className="font-bold text-base text-gray-900 line-clamp-1">
+          {lead.title}
+        </h4>
+        <p className="text-xs text-gray-500 truncate">{lead.company || "-"}</p>
       </div>
 
       {/* Status */}
       <div className="col-span-2 flex items-center">
-        <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold ${stage.color} ${stage.textColor}`}>
-          <span className={`w-2 h-2 rounded-full ${stage.iconColor} animate-pulse`}></span>
+        <span
+          className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold ${stage.color} ${stage.textColor}`}
+        >
           {stageLabel}
         </span>
       </div>
@@ -109,18 +137,31 @@ export default function LeadListItem({ lead, onArchive }: LeadListItemProps) {
       <div className="col-span-2 flex items-center">
         <div className="flex flex-col">
           <span className="text-base font-bold text-gray-900">
-            {lead.currency} {(lead.value || 0).toLocaleString('id-ID')}
+            {lead.currency} {(lead.value || 0).toLocaleString("id-ID")}
           </span>
         </div>
       </div>
 
       {/* Priority & Label */}
       <div className="col-span-2 flex items-center gap-2" data-no-navigate>
-        <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${priorityColors[lead.priority]}`}>
-          {lead.priority}
+        <span
+          className={`px-2 py-1 rounded-full text-xs font-bold capitalize ${
+            // Ganti uppercase jadi capitalize
+            priorityColors[lead.priority]
+          }`}
+        >
+          {lead.priority.toLowerCase()}{" "}
+          {/* Pastikan text aslinya kecil semua dulu */}
         </span>
+
         {lead.label && (
-          <span className={`px-2 py-1 rounded text-xs font-medium ${labelColors[lead.label.toLowerCase()] || "bg-gray-100 text-gray-700"}`}>
+          <span
+            className={`px-2 py-1 rounded-full text-xs font-medium capitalize ${
+              // Pastikan ada capitalize
+              labelColors[lead.label.toLowerCase()] ||
+              "bg-gray-100 text-gray-700"
+            }`}
+          >
             {lead.label}
           </span>
         )}
@@ -130,12 +171,12 @@ export default function LeadListItem({ lead, onArchive }: LeadListItemProps) {
       <div className="col-span-2 flex items-center gap-4">
         {/* Due Date */}
         <div className="flex items-center gap-1.5 text-xs text-gray-500">
-          <Calendar className="w-3.5 h-3.5" />
+          <CalendarClock className="w-3.5 h-3.5" />
           <span>
             {lead.dueDate
               ? new Date(lead.dueDate).toLocaleDateString("id-ID", {
                   day: "numeric",
-                  month: "short",
+                  month: "numeric",
                   year: "2-digit",
                 })
               : "-"}
@@ -170,21 +211,23 @@ export default function LeadListItem({ lead, onArchive }: LeadListItemProps) {
       {/* Archive Action */}
       <div className="col-span-1 flex items-center justify-end">
         {onArchive && (
-          <button
+          <Button
             onClick={handleArchiveClick}
-            className={`opacity-0 group-hover:opacity-100 transition-all p-2.5 rounded-xl hover:scale-110 active:scale-95 ${
+            variant="outline"
+            size="icon" // Mengunci ukuran tombol agar kotak/bulat kecil
+            className={`h-7 w-7 rounded-full transition-all hover:scale-110 active:scale-95 ${
               lead.isArchived
-                ? "bg-blue-50 text-blue-600 hover:bg-blue-100"
-                : "text-gray-400 hover:text-gray-900 hover:bg-gray-100"
+                ? "bg-blue-50 text-blue-600 hover:bg-blue-100 border-blue-200"
+                : "text-gray-400 hover:text-gray-900 hover:bg-gray-100 border-transparent hover:border-gray-200"
             }`}
             title={lead.isArchived ? "Unarchive" : "Archive"}
           >
             {lead.isArchived ? (
-              <ArchiveRestore className="w-5 h-5" />
+              <ArchiveRestore className="w-3.5 h-3.5" /> // Ukuran ikon disesuaikan
             ) : (
-              <Archive className="w-5 h-5" />
+              <Archive className="w-3.5 h-3.5" />
             )}
-          </button>
+          </Button>
         )}
       </div>
     </div>

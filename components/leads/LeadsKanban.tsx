@@ -114,7 +114,7 @@ export default function LeadsKanban({
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
                   </svg>
                 </div>
-                <h3 className="text-base font-bold text-gray-900 mb-2">No leads found</h3>
+                <h3 className="text-base font-bold text-gray-900 mb-2">No leads or archive found</h3>
                 <p className="text-sm text-gray-500">Start by adding your first lead to begin tracking</p>
               </div>
             )}
