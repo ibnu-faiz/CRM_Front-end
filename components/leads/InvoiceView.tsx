@@ -39,7 +39,7 @@ const formatCurrency = (amount: number) => {
 
 const formatDate = (isoString?: string) => {
   if (!isoString) return "-";
-  return new Date(isoString).toLocaleDateString("id-ID", {
+  return new Date(isoString).toLocaleDateString("en-UK", {
     day: "numeric",
     month: "short",
     year: "numeric",

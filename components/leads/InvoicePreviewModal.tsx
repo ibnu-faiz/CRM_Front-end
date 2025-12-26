@@ -29,7 +29,7 @@ const formatCurrency = (amount: number) => {
 };
 const formatDate = (isoString?: string) => {
   if (!isoString) return '-';
-  return new Date(isoString).toLocaleDateString('en-US', {
+  return new Date(isoString).toLocaleDateString('en-UK', {
     month: 'long', day: 'numeric', year: 'numeric',
   });
 };
