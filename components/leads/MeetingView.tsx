@@ -3,7 +3,7 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Calendar, Clock, MapPin, MoreHorizontal, Users } from 'lucide-react';
+import { Calendar, Video, Clock, MapPin, MoreHorizontal, Users } from 'lucide-react';
 import { LeadActivity, TeamMember } from '@/lib/types';
 import {
   DropdownMenu,
@@ -19,7 +19,7 @@ const formatCreationDate = (isoString?: string) => {
   if (!isoString) return '-';
   // Contoh: 17 Nov 2025
   return new Date(isoString).toLocaleString('en-US', {
-    dateStyle: 'medium',
+    dateStyle: 'short',
     timeStyle: 'short',
   });
 };
@@ -28,10 +28,8 @@ const formatCreationDate = (isoString?: string) => {
 const formatMeetingDate = (isoStart?: string) => {
   if (!isoStart) return 'Date not set';
   // Contoh: 18 November 2025
-  return new Date(isoStart).toLocaleDateString('en-US', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric'
+  return new Date(isoStart).toLocaleDateString('en-UK', {
+    dateStyle: 'full',
   });
 }
 
@@ -79,6 +77,19 @@ export default function MeetingView({
     return <div className="text-red-500 p-4">Failed to load Meetings {(error as any).info?.error}</div>;
   }
 
+  if (!meetings || meetings.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center py-12 text-center border-2 border-dashed border-gray-200 rounded-lg bg-gray-50/50">
+          <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-3">
+            <Calendar className="w-6 h-6 text-gray-400" />
+          </div>
+          <p className="text-gray-900 font-medium">No meetings scheduled yet</p>
+          <p className="text-sm text-gray-500 mt-1 max-w-xs">Scheduled meetings will appear here.</p>
+        </div>
+      );
+    }
+  
+
   // Helper untuk mendapatkan nama dari ID
   const getAttendeeNames = (ids: string[]) => {
     if (!salesTeam || ids.length === 0) return '-';
@@ -113,8 +124,8 @@ export default function MeetingView({
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-start gap-3">
                       <Avatar className="w-10 h-10">
-                        <AvatarFallback className="bg-gray-900 text-white">
-                          {meeting.createdBy.name?.charAt(0) || 'U'}
+                        <AvatarFallback className="bg-gray-300 text-black">
+                          <Video className="w-5 h-5 fill-current" />
                         </AvatarFallback>
                       </Avatar>
                       <div>
@@ -173,8 +184,8 @@ export default function MeetingView({
                       <div>
                         <p className="text-sm font-medium">Location</p>
                         <p className="text-sm text-gray-600">
-                          {location || (link ? 'Online' : 'Not set')}
-                          {link && <a href={link} target="_blank" rel="noopener noreferrer" className="text-blue-500 underline ml-1">(Link)</a>}
+                          {location || (link ? 'Online' : 'Not set yet')}
+                          {link && <a href={link} target="_blank" rel="noopener noreferrer" className="text-blue-500 underline ml-1">(Link Meeting)</a>}
                         </p>
                       </div>
                     </div>
