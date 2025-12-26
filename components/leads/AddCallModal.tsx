@@ -273,8 +273,8 @@ export default function AddCallModal({
                   <SelectValue placeholder="Choose status" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="scheduled">Scheduled</SelectItem>
                   <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="succeeded">Succeeded</SelectItem>
                   <SelectItem value="missed">Missed</SelectItem>
                 </SelectContent>
               </Select>

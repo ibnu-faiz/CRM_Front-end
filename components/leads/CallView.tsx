@@ -26,17 +26,24 @@ const formatCreationDate = (isoString?: string) => {
   if (!isoString) return '-';
   // Contoh: 17 Nov 2025
   return new Date(isoString).toLocaleString('en-US', {
-    dateStyle: 'medium',
+    dateStyle: 'short',
     timeStyle: 'short',
   });
 };
 
 // Format untuk tanggal & waktu call
-const formatCallDateTime = (isoString?: string) => {
+const formatCallDate = (isoString?: string) => {
+  if (!isoString) return 'Not scheduled';
+  // Contoh: 18 Nov 2025, 10:00
+  return new Date(isoString).toLocaleString('en-UK', {
+    dateStyle: 'full',
+  });
+};
+
+const formatCallTime = (isoString?: string) => {
   if (!isoString) return 'Not scheduled';
   // Contoh: 18 Nov 2025, 10:00
   return new Date(isoString).toLocaleString('en-US', {
-    dateStyle: 'medium',
     timeStyle: 'short',
   });
 };
@@ -55,6 +62,18 @@ export default function CallView({ calls, error, onEditCall, onDeleteCall, onUpd
   
   if (error) {
     return <div className="text-red-500 p-4">Failed to load Call {(error as any).info?.error}</div>;
+  }
+
+  if (!calls || calls.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 text-center border-2 border-dashed border-gray-200 rounded-lg bg-gray-50/50">
+        <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-3">
+          <Phone className="w-6 h-6 text-gray-400" />
+        </div>
+        <p className="text-gray-900 font-medium">No calls logged yet</p>
+        <p className="text-sm text-gray-500 mt-1 max-w-xs">Scheduled calls and call logs will appear here.</p>
+      </div>
+    );
   }
 
   return (
@@ -78,8 +97,8 @@ export default function CallView({ calls, error, onEditCall, onDeleteCall, onUpd
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-start gap-3">
                       <Avatar className="w-10 h-10">
-                        <AvatarFallback className="bg-gray-900 text-white">
-                          <Phone className="w-5 h-5" />
+                        <AvatarFallback className="bg-gray-300 text-black">
+                          <Phone className="w-5 h-5 fill-current" />
                         </AvatarFallback>
                       </Avatar>
                       <div>
@@ -138,7 +157,8 @@ export default function CallView({ calls, error, onEditCall, onDeleteCall, onUpd
                       <Calendar className="w-5 h-5 text-gray-500 mt-1" />
                       <div>
                         <p className="text-sm font-medium">Call Time</p>
-                        <p className="text-sm text-gray-600">{formatCallDateTime(callTime)}</p>
+                        <p className="text-sm text-gray-600">{formatCallDate(callTime)}</p>
+                        <p className="text-sm text-gray-600">at {formatCallTime(callTime)}</p>
                       </div>
                     </div>
                   </div>
@@ -167,8 +187,8 @@ export default function CallView({ calls, error, onEditCall, onDeleteCall, onUpd
                             <SelectValue placeholder="Set status..." />
                           </SelectTrigger>
                           <SelectContent>
+                            <SelectItem value="scheduled">Scheduled</SelectItem>
                             <SelectItem value="completed">Completed</SelectItem>
-                            <SelectItem value="succeeded">Succeeded</SelectItem>
                             <SelectItem value="missed">Missed</SelectItem>
                           </SelectContent>
                         </Select>
