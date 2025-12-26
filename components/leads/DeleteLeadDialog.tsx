@@ -33,8 +33,8 @@ export default function DeleteLeadDialog({
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent className="max-w-md">
         <AlertDialogHeader className="flex flex-col items-center">
-          <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mb-4">
-            <Trash2 className="w-8 h-8 text-white" />
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
+            <Trash2 className="w-8 h-8 text-red-600" />
           </div>
           <AlertDialogTitle className="text-center text-xl">
             Delete Lead?
@@ -56,7 +56,7 @@ export default function DeleteLeadDialog({
           </Button>
           <Button
             onClick={handleConfirm}
-            className="flex-1 bg-gray-800 hover:bg-gray-700"
+            className="flex-1 bg-red-600 hover:bg-red-700 text-white"
           >
             Confirm
           </Button>

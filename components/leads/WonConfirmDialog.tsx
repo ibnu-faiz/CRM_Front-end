@@ -8,7 +8,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
-import { Check } from 'lucide-react';
+import { CircleCheck } from 'lucide-react';
 
 interface WonConfirmDialogProps {
   open: boolean;
@@ -33,8 +33,8 @@ export default function WonConfirmDialog({
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent className="max-w-md">
         <AlertDialogHeader className="flex flex-col items-center">
-          <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mb-4">
-            <Check className="w-8 h-8 text-white" />
+          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+            <CircleCheck className="w-8 h-8 text-green-600" />
           </div>
           <AlertDialogTitle className="text-center text-xl">
             Are you sure you want to won this leads?
@@ -56,7 +56,7 @@ export default function WonConfirmDialog({
           </Button>
           <Button
             onClick={handleConfirm}
-            className="flex-1 bg-gray-800 hover:bg-gray-700"
+            className="flex-1 bg-green-600 hover:bg-green-700"
           >
             Confirm
           </Button>
