@@ -32,6 +32,16 @@ import { MultiSelect } from '@/components/ui/multi-select';
 // --- PERBAIKAN 2: Definisikan API_URL ---
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
+// --- KONFIGURASI SOURCE (Mapping Origin -> Channel) ---
+const SOURCE_MAP: Record<string, string[]> = {
+  "Social Media": ["Instagram", "TikTok", "LinkedIn", "Facebook", "Twitter/X", "Youtube"],
+  "Website": ["Contact Us Form", "Landing Page", "Chatbot", "Direct Traffic"],
+  "Ads / Campaign": ["Google Ads", "Meta Ads", "TikTok Ads", "Email Marketing", "Billboard"],
+  "Event / Offline": ["Exhibition", "Networking", "Walk-in", "Business Card", "Cold Call"],
+  "Referral": ["Client", "Partner", "Employee", "Friend"],
+  "Other": ["Other"]
+};
+
 interface EditSummaryModalProps {
   lead: Lead | null;
   open: boolean;
@@ -67,6 +77,10 @@ export default function EditSummaryModal({
     phone: '',
     email: '',
     description: '',
+    // Tambahan Field Source
+    sourceOrigin: '',
+    sourceChannel: '',
+    sourceChannelId: '',
   });
 
  const [assignedUserIds, setAssignedUserIds] = useState<string[]>([]);
@@ -87,6 +101,10 @@ export default function EditSummaryModal({
         phone: lead?.phone || '',
         email: lead?.email || '',
         description: lead?.description || '',
+        // Populate Source fields
+        sourceOrigin: lead?.sourceOrigin || '',
+        sourceChannel: lead?.sourceChannel || '',
+        sourceChannelId: lead?.sourceChannelId || '',
       });
       // --- PERBAIKAN: Isi state array assignedUserIds ---
       setAssignedUserIds(lead?.assignedUsers.map(user => user.id) || []);
@@ -94,7 +112,15 @@ export default function EditSummaryModal({
   }, [open, lead]);
 
   const handleChange = (field: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    setFormData((prev) => {
+      const newData = { ...prev, [field]: value };
+      
+      // Reset Channel jika Origin berubah
+      if (field === 'sourceOrigin') {
+        newData.sourceChannel = ''; 
+      }
+      return newData;
+    });
   };
 
   const handleSubmit = async (e: FormEvent) => {
@@ -117,12 +143,16 @@ export default function EditSummaryModal({
         email: formData.email,
         description: formData.description,
         assignedUserIds: assignedUserIds, // Ini properti yang benar untuk dikirim
+        // Source fields
+        sourceOrigin: formData.sourceOrigin,
+        sourceChannel: formData.sourceChannel,
+        sourceChannelId: formData.sourceChannelId,
       };
 
       await updateLead(lead.id, updateData);
       // --- PERBAIKAN 4: Ubah sintaks 'toast' ke 'sonner' ---
-      toast.success('Success', {
-        description: 'Lead updated successfully',
+      toast.success('', {
+        description: 'Lead Summary updated successfully',
       });
 
       onLeadUpdated();
@@ -259,7 +289,7 @@ export default function EditSummaryModal({
             </div>
           </div>
 
-          {/* Client Type & Label --- (BLOK JSX BARU) --- */}
+          {/* Client Type & Label */}
           <div className="grid grid-cols-2 gap-4">
             <div className="grid gap-1.5">
               <Label htmlFor="clientType">Client Type</Label>
@@ -278,7 +308,6 @@ export default function EditSummaryModal({
               </Select>
             </div>
             
-            {/* --- 4. TAMBAHKAN JSX 'LABEL' DI SINI --- */}
             <div className="grid gap-1.5">
               <Label htmlFor="label">Label</Label>
               <Select 
@@ -299,20 +328,18 @@ export default function EditSummaryModal({
             </div>
           </div>
 
-          {/* Due Date (Sekarang di barisnya sendiri) */}
-          <div className="grid gap-1.5">
-            <Label htmlFor="dueDate">Due Date</Label>
-            <Input
-              id="dueDate"
-              type="date"
-              value={formData.dueDate}
-              onChange={(e) => handleChange('dueDate', e.target.value)}
-              disabled={loading}
-            />
-          </div>
-
-          {/* Phone & Email */}
+          {/* Due Date & Phone */}
           <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-1.5">
+              <Label htmlFor="dueDate">Due Date</Label>
+              <Input
+                id="dueDate"
+                type="date"
+                value={formData.dueDate}
+                onChange={(e) => handleChange('dueDate', e.target.value)}
+                disabled={loading}
+              />
+            </div>
             <div className="grid gap-1.5">
               <Label htmlFor="phone">Phone Number</Label>
               <Input
@@ -324,18 +351,81 @@ export default function EditSummaryModal({
                 disabled={loading}
               />
             </div>
+          </div>
+
+          {/* Email */}
+          <div className="grid gap-1.5">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              placeholder="Enter Email"
+              value={formData.email}
+              onChange={(e) => handleChange('email', e.target.value)}
+              disabled={loading}
+            />
+          </div>
+
+          {/* === LEAD SOURCE SECTION (NEW) === */}
+          <div className="space-y-3 bg-gray-50 p-4 rounded-lg border border-gray-100">
+            <h3 className="font-semibold text-gray-700 border-b border-gray-200 pb-2 text-sm flex items-center gap-2">
+              Lead Source / Attribution
+            </h3>
+            
+            <div className="grid grid-cols-2 gap-4">
+              {/* Origin Dropdown */}
+              <div className="grid gap-1.5">
+                <Label htmlFor="sourceOrigin" className="text-xs text-gray-500">Origin (Asal)</Label>
+                <Select 
+                  value={formData.sourceOrigin} 
+                  onValueChange={(value) => handleChange('sourceOrigin', value)}
+                  disabled={loading}
+                >
+                  <SelectTrigger className="bg-white">
+                    <SelectValue placeholder="Select Origin" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.keys(SOURCE_MAP).map((origin) => (
+                      <SelectItem key={origin} value={origin}>{origin}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Channel Dropdown (Isinya tergantung Origin) */}
+              <div className="grid gap-1.5">
+                <Label htmlFor="sourceChannel" className="text-xs text-gray-500">Channel (Media)</Label>
+                <Select 
+                  value={formData.sourceChannel} 
+                  onValueChange={(value) => handleChange('sourceChannel', value)}
+                  disabled={loading || !formData.sourceOrigin}
+                >
+                  <SelectTrigger className="bg-white">
+                    <SelectValue placeholder={formData.sourceOrigin ? "Select Channel" : "Select Origin first"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {formData.sourceOrigin && SOURCE_MAP[formData.sourceOrigin]?.map((channel) => (
+                      <SelectItem key={channel} value={channel}>{channel}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Channel ID Input */}
             <div className="grid gap-1.5">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="Enter Email"
-                value={formData.email}
-                onChange={(e) => handleChange('email', e.target.value)}
-                disabled={loading}
-              />
+                <Label htmlFor="sourceChannelId" className="text-xs text-gray-500">Channel ID / Username / Link (Optional)</Label>
+                <Input
+                  id="sourceChannelId"
+                  className="bg-white"
+                  placeholder="e.g. @instagram_username, form_id_123, or campaign_link"
+                  value={formData.sourceChannelId}
+                  onChange={(e) => handleChange('sourceChannelId', e.target.value)}
+                  disabled={loading}
+                />
             </div>
           </div>
+          {/* ================================= */}
 
           {/* Description */}
           <div className="grid gap-1.5">

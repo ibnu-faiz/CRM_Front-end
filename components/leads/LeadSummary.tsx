@@ -3,7 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Edit, ChevronDown, ChevronUp, Calendar, User, Phone, Mail } from 'lucide-react';
+import { Edit, ChevronDown, ChevronUp, CalendarClock, User, Phone, Mail } from 'lucide-react';
 import { useState } from 'react';
 import { Lead } from '@/lib/types';
 
@@ -20,9 +20,9 @@ export default function LeadSummary({ lead, onEdit }: LeadSummaryProps) {
   const formatDate = (dateString: string | null) => {
     if (!dateString) return '-';
     const date = new Date(dateString);
-    return date.toLocaleDateString('id-ID', { 
+    return date.toLocaleDateString('en-US', { 
       day: 'numeric', 
-      month: 'short', 
+      month: 'long', 
       year: 'numeric' 
     });
   };
@@ -61,8 +61,8 @@ export default function LeadSummary({ lead, onEdit }: LeadSummaryProps) {
         <CardContent className="space-y-3 text-sm">
           {/* Deal Value */}
           <div>
-            <p className="text-gray-500">Deal Value</p>
-            <p className="font-semibold">
+            <p className="font-semibold">Deal Value</p>
+            <p className="text-gray-500">
               {lead.currency ?? 'IDR'}{' '}
               {typeof lead.value === 'number'
                 ? lead.value.toLocaleString('id-ID')
@@ -73,16 +73,16 @@ export default function LeadSummary({ lead, onEdit }: LeadSummaryProps) {
           {/* Company */}
           {lead.company && (
             <div>
-              <p className="text-gray-500">Company</p>
-              <p className="font-semibold">{lead.company}</p>
+              <p className="font-semibold">Company</p>
+              <p className="text-gray-500">{lead.company}</p>
             </div>
           )}
 
           {/* Contact Person */}
           {lead.contacts && (
             <div>
-              <p className="text-gray-500">Contact Person</p>
-              <p className="font-semibold">{lead.contacts}</p>
+              <p className="font-semibold">Contact Person</p>
+              <p className="text-gray-500">{lead.contacts}</p>
             </div>
           )}
 
@@ -101,7 +101,7 @@ export default function LeadSummary({ lead, onEdit }: LeadSummaryProps) {
           {/* Due Date */}
           {lead.dueDate && (
             <div className="flex items-center gap-2 text-gray-500">
-              <Calendar className="w-4 h-4" />
+              <CalendarClock className="w-4 h-4" />
               <span>{formatDate(lead.dueDate)}</span>
             </div>
           )}
@@ -136,7 +136,7 @@ export default function LeadSummary({ lead, onEdit }: LeadSummaryProps) {
         )}
       </Card>
 
-      {/* Source Card */}
+      {/* Source Card (UPDATED) */}
       <Card>
         <CardHeader>
           <Button
@@ -146,6 +146,7 @@ export default function LeadSummary({ lead, onEdit }: LeadSummaryProps) {
           >
             <span className="flex items-center gap-2">
               Source
+              {/* Badge Beta tetap ada sebagai info UI */}
               <Badge variant="secondary" className="text-xs">Beta</Badge>
             </span>
             {sourceOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -154,17 +155,22 @@ export default function LeadSummary({ lead, onEdit }: LeadSummaryProps) {
 
         {sourceOpen && (
           <CardContent className="text-sm space-y-2">
-            <div className="flex justify-between">
+            <div className="flex justify-between items-center">
               <span className="text-gray-500">Source origin</span>
-              <span className="font-semibold">API</span>
+              {/* Data dari Database: sourceOrigin */}
+              <span className="font-semibold">{lead.sourceOrigin || '-'}</span>
             </div>
-            <div className="flex justify-between">
+            <div className="flex justify-between items-center">
               <span className="text-gray-500">Source channel</span>
-              <span>-</span>
+              {/* Data dari Database: sourceChannel */}
+              <span>{lead.sourceChannel || '-'}</span>
             </div>
-            <div className="flex justify-between">
+            <div className="flex justify-between items-center">
               <span className="text-gray-500">Source channel ID</span>
-              <span>-</span>
+              {/* Data dari Database: sourceChannelId (Truncate agar tidak kepanjangan) */}
+              <span className="truncate max-w-[150px]" title={lead.sourceChannelId || ''}>
+                {lead.sourceChannelId || '-'}
+              </span>
             </div>
           </CardContent>
         )}
