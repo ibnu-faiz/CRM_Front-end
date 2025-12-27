@@ -11,11 +11,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Mail,
-  Briefcase,
-  MoreVertical,
-} from "lucide-react";
+import { Mail, Briefcase, MoreVertical } from "lucide-react";
 import { TeamMember, UserStatus } from "@/lib/types";
 import { toast } from "sonner";
 import DeleteConfirmDialog from "@/components/team/DeleteConfirmDialog";
@@ -33,7 +29,6 @@ const statusColors: Record<string, string> = {
   [UserStatus.ON_LEAVE]: "bg-amber-600 hover:bg-amber-700 text-white",
 };
 
-
 const statusLabels: Record<string, string> = {
   [UserStatus.ACTIVE]: "Active",
   [UserStatus.INACTIVE]: "Inactive",
@@ -42,10 +37,10 @@ const statusLabels: Record<string, string> = {
 };
 
 const statusDotColors: Record<string, string> = {
-  [UserStatus.ACTIVE]: 'bg-emerald-600',
-  [UserStatus.INACTIVE]: 'bg-gray-600',
-  [UserStatus.ONBOARDING]: 'bg-blue-600',
-  [UserStatus.ON_LEAVE]: 'bg-amber-600',
+  [UserStatus.ACTIVE]: "bg-emerald-600",
+  [UserStatus.INACTIVE]: "bg-gray-600",
+  [UserStatus.ONBOARDING]: "bg-blue-600",
+  [UserStatus.ON_LEAVE]: "bg-amber-600",
 };
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
@@ -83,18 +78,14 @@ export default function TeamCard({ member, onTeamUpdated }: TeamCardProps) {
     }
   };
 
-
-
   return (
     <>
       <Card className="hover:shadow-md transition-shadow w-full max-w-[350px] mx-auto">
         <CardContent className="p-6">
           <div className="flex items-start justify-between mb-4">
-             <Badge className={statusColors[member.status]}>
-
+            <Badge className={statusColors[member.status]}>
               {statusLabels[member.status]}
-
-            </Badge> 
+            </Badge>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="p-1 hover:bg-gray-100 rounded">
@@ -122,20 +113,27 @@ export default function TeamCard({ member, onTeamUpdated }: TeamCardProps) {
 
           <div className="flex flex-col items-center mb-4">
             <div className="relative">
-            <Avatar className="w-24 h-24 border-4 border-white shadow-xl ring-2 ring-gray-100">
-              <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-2xl font-bold">
-                {member.name
-                  .split(" ")
-                  .map((n) => n[0])
-                  .join("")}
-              </AvatarFallback>
-            </Avatar>
-            <div className="absolute bottom-1 right-1">
-                <div className={`w-5 h-5 ${statusDotColors[member.status]} rounded-full border-4 border-white shadow-sm`}></div>
+              <Avatar className="w-24 h-24 border-4 border-white shadow-xl ring-2 ring-gray-100">
+                <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-2xl font-bold">
+                  {member.name
+                    .split(" ")
+                    .map((n) => n[0])
+                    .join("")}
+                </AvatarFallback>
+              </Avatar>
+              <div className="absolute bottom-1 right-1">
+                <div
+                  className={`w-5 h-5 ${
+                    statusDotColors[member.status]
+                  } rounded-full border-4 border-white shadow-sm`}
+                ></div>
               </div>
             </div>
-            
-            <h3 className="font-bold text-gray-900 text-center mt-3">
+
+            <h3
+              className="font-bold text-gray-900 text-center mt-3 w-full px-2 truncate"
+              title={member.name} // Opsional: Biar pas di-hover muncul nama lengkapnya
+            >
               {member.name}
             </h3>
             <p className="text-sm text-gray-500">{member.role}</p>
