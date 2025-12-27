@@ -89,7 +89,6 @@ export default function Navbar({
       .split(" ")
       .map((n) => n[0])
       .join("")
-      .toUpperCase();
   };
 
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -241,7 +240,11 @@ export default function Navbar({
                   </AvatarFallback>
                 </Avatar>
                 <span className="text-sm font-medium hidden sm:inline-block">
-                  {isLoading ? "Loading..." : error ? "Error" : user?.name}
+                  {isLoading
+                    ? "Loading..."
+                    : error
+                    ? "Error"
+                    : user?.name?.split(" ")[0]}
                 </span>
                 <ChevronDown className="w-4 h-4" />
               </Button>
@@ -251,8 +254,7 @@ export default function Navbar({
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild className="cursor-pointer">
                 <Link href="/profile" className="flex items-center">
-                  <User
-                  className="w-4 h-4 mr-2" />
+                  <User className="w-4 h-4 mr-2" />
                   Profile
                 </Link>
               </DropdownMenuItem>
