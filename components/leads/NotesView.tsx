@@ -1,8 +1,9 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Card, CardContent } from '@/components/ui/card';
-import { FileText, Edit, Trash2, Calendar, Paperclip } from 'lucide-react';
+import { StickyNote, Edit, Trash2, Calendar, Paperclip } from 'lucide-react';
 import { LeadActivity } from '@/lib/types';
 import Image from 'next/image'; // 1. Impor Next.js Image
 
@@ -42,6 +43,17 @@ export default function NotesView({ notes, error, onEditNote, onDeleteNote }: No
   if (error) {
     return <div className="text-red-500 p-4">Failed to load Notes {(error as any).info?.error}</div>;
   }
+  if (!notes || notes.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 text-center border-2 border-dashed border-gray-200 rounded-lg bg-gray-50/50">
+        <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-3">
+          <StickyNote className="w-6 h-6 text-gray-400" />
+        </div>
+        <p className="text-gray-900 font-medium">No notes added yet</p>
+        <p className="text-sm text-gray-500 mt-1 max-w-xs">Notes will appear here.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -57,9 +69,11 @@ export default function NotesView({ notes, error, onEditNote, onDeleteNote }: No
                   <div className="flex items-start justify-between mb-4">
                     {/* Header */}
                     <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
-                        <FileText className="w-5 h-5 text-gray-600" />
-                      </div>
+                      <Avatar className="w-10 h-10">
+                        <AvatarFallback className="bg-gray-300 text-black">
+                          <StickyNote className="w-5 h-5 fill-black text-gray-300" />
+                        </AvatarFallback>
+                      </Avatar>
                       <div>
                         <h4 className="font-semibold text-gray-900">Note</h4>
                         <p className="text-sm text-gray-500">
@@ -71,7 +85,7 @@ export default function NotesView({ notes, error, onEditNote, onDeleteNote }: No
                     <div className="flex items-center gap-2">
                       <div className="flex items-center gap-2 text-sm text-gray-500">
                         <Calendar className="w-4 h-4" />
-                        <span>{new Date(note.createdAt).toLocaleString('en-US', {dateStyle: 'medium', timeStyle: 'short'})}</span>
+                        <span>{new Date(note.createdAt).toLocaleString('en-US', {dateStyle: 'short', timeStyle: 'short'})}</span>
                       </div>
                       <Button
                         variant="ghost"
