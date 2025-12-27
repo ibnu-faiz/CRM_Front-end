@@ -33,8 +33,8 @@ export default function LostConfirmDialog({
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent className="max-w-md">
         <AlertDialogHeader className="flex flex-col items-center">
-          <div className="w-16 h-16 bg-orange-500 rounded-full flex items-center justify-center mb-4">
-            <XCircle className="w-8 h-8 text-white" />
+          <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mb-4">
+            <XCircle className="w-8 h-8 text-orange-600" />
           </div>
           <AlertDialogTitle className="text-center text-xl">
             Mark as Lost?
@@ -56,7 +56,7 @@ export default function LostConfirmDialog({
           </Button>
           <Button
             onClick={handleConfirm}
-            className="flex-1 bg-orange-500 hover:bg-orange-600"
+            className="flex-1 bg-orange-600 hover:bg-orange-700"
           >
             Confirm
           </Button>
