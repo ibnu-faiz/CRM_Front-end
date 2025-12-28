@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import StatsCard from '@/components/dashboard/StatsCard'; 
-import MetricCard from '@/components/dashboard/MetricCard'; // <--- IMPORT INI
-import { Wallet, TrendingUp, Target, Loader2, Trophy, Users, UserCheck } from 'lucide-react';
+import MetricsStrip from '@/components/dashboard/MetricsStrip'; // <--- IMPORT INI
+import { Wallet, TrendingUp, Target, Loader2, Trophy, Users, UserCheck, CreditCard, Signal } from 'lucide-react';
 import { toast } from 'sonner';
 
 // 1. UPDATE INTERFACE SESUAI BACKEND BARU
@@ -72,10 +72,10 @@ export default function DashboardStats() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       
       {/* SECTION 1: MAIN STATS (Kartu Besar) */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <StatsCard
           title="Total Pipeline Value"
           value={formatRupiah(data?.pipelineValue.value || 0)}
@@ -88,55 +88,24 @@ export default function DashboardStats() {
           value={data?.activeDeals.value.toString() || "0"}
           change={`${data?.activeDeals.change}%`}
           isPositive={data?.activeDeals.isPositive || false}
-          icon={<TrendingUp className="w-4 h-4" />}
+          icon={<CreditCard className="w-4 h-4" />}
         />
         <StatsCard
           title="Average Deals"
           value={formatRupiah(data?.avgDeal.value || 0)}
           change={`${data?.avgDeal.change}%`}
           isPositive={data?.avgDeal.isPositive || false}
-          icon={<Target className="w-4 h-4" />}
+          icon={<Signal className="w-4 h-4" />}
         />
       </div>
 
-      {/* SECTION 2: METRICS ROW (Kartu Kecil) */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {/* Total Won */}
-        <MetricCard 
-          label="Total Won"
-          value={data?.metrics.totalWon.value || 0}
-          change={`${data?.metrics.totalWon.change}%`}
-          isPositive={true} 
-          icon={<Trophy className="w-5 h-5 text-yellow-600" />}
-        />
-        
-        {/* Total Lost */}
-        <MetricCard 
-          label="Total Lost"
-          value={data?.metrics.totalLost.value || 0}
-          change={`${data?.metrics.totalLost.change}%`}
-          isPositive={false} // Merah kalau naik
-          icon={<Target className="w-5 h-5 text-red-600" />}
-        />
+      {/* SECTION 2: METRICS STRIP (BARU!) */}
+      {/* Kita passing object metrics ke komponen strip */}
+      {data?.metrics && (
+        <MetricsStrip data={data.metrics} />
+      )}
 
-        {/* Total Leads (Volume) */}
-        <MetricCard 
-          label="Total Leads"
-          value={data?.metrics.totalLeads.value || 0}
-          change={`${data?.metrics.totalLeads.change}%`}
-          isPositive={true}
-          icon={<Users className="w-5 h-5 text-blue-600" />}
-        />
-
-        {/* Win Rate (Conversion) */}
-        <MetricCard 
-          label="Win Rate"
-          value={`${data?.metrics.conversionRate.value}%`} // Pakai Persen
-          change={`${data?.metrics.conversionRate.change}%`}
-          isPositive={true}
-          icon={<UserCheck className="w-5 h-5 text-green-600" />}
-        />
-      </div>
+    
 
     </div>
   );

@@ -20,15 +20,17 @@ export default function StatsCard({
 }: StatsCardProps) {
   return (
     <Card className="bg-white">
-      <CardContent className="p-6">
-        <div className="flex items-center justify-between mb-2">
+      <CardContent>
+        <div className="flex items-center justify-center mb-2">
           <span className="text-sm text-gray-600 flex items-center gap-2">
             {icon}
             {title}
           </span>
         </div>
-        <div className="flex items-end justify-between">
+        <div className="flex items-center justify-center mb-2">
           <h3 className="text-3xl font-bold text-gray-900">{value}</h3>
+        </div>
+        <div className="flex items-center justify-center">
           <div
             className={cn(
               'flex items-center gap-1 text-sm font-medium',
@@ -42,7 +44,7 @@ export default function StatsCard({
             )}
             {change}
           </div>
-        </div>
+          </div>
       </CardContent>
     </Card>
   );

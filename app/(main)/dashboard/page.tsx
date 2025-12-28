@@ -15,7 +15,7 @@ import DashboardStats from '@/components/dashboard/DashboardStats';
 
 export default function DashboardPage() {
   return (
-    <div className="p-6 space-y-6 transition-all duration-300 ease-in-out">
+    <div className="p-6 space-y-3 transition-all duration-300 ease-in-out">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -31,55 +31,35 @@ export default function DashboardPage() {
       {/* Main Stats Cards */}
       <DashboardStats />
 
-      {/* Metrics Row */}
-      {/* <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <MetricCard
-          icon={<Trophy className="w-5 h-5" />}
-          label="Total Won"
-          value="300"
-          change="+10%"
-          isPositive={true}
-        />
-        <MetricCard
-          icon={<Target className="w-5 h-5" />}
-          label="Total Lost"
-          value="20"
-          change="-3%"
-          isPositive={false}
-        />
-        <MetricCard
-          icon={<Users className="w-5 h-5" />}
-          label="Total Leads"
-          value="450"
-          change="+5%"
-          isPositive={true}
-        />
-        <MetricCard
-          icon={<UserCheck className="w-5 h-5" />}
-          label="Active Leads"
-          value="230"
-          change="+3%"
-          isPositive={true}
-        />
-      </div> */}
 
-      {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <LeadsChart />
-        <ActivityList />
-      </div>
+     {/* 3. Main Content Grid (Layout Dua Menara) */}
+      {/* Grid Utama: 3 Kolom. Kiri ambil 2 bagian, Kanan ambil 1 bagian */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-3">
+        
+        {/* === MENARA KIRI (Sekarang ambil 3 dari 5 bagian = 60%) === */}
+        <div className="lg:col-span-3 space-y-3">
+          
+          <LeadsChart />
+          <RevenueChart />
 
-      {/* Revenue Chart */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <RevenueChart />
-        <LeadSourceChart />
-      </div>
+          {/* Bagian bawah kiri tetap dibagi 2 kalau layar sangat lebar (xl) */}
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+             <RecentDeals />
+             <PipelineOverview />
+          </div>
 
-      {/* Bottom Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <RecentDeals />
-        <PipelineOverview />
-        <QuarterSummary />
+        </div>
+
+        {/* === MENARA KANAN (Sekarang otomatis dapat 2 bagian sisa = 40%) === */}
+        {/* Lebih lega untuk Activity List & Pie Chart */}
+        <div className="lg:col-span-2 space-y-3">
+          
+          <ActivityList />
+          <LeadSourceChart />
+          <QuarterSummary />
+
+        </div>
+
       </div>
     </div>
   );
