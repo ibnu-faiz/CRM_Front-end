@@ -1,5 +1,19 @@
 {
     "conventionalCommits.scopes": [
-        "invoice"
+        "invoice",
+        "deps",
+        "ui",
+        "public",
+        "types",
+        "team",
+        "ai",
+        "leads",
+        "layout",
+        "activitytimeline",
+        "call",
+        "meet",
+        "profile",
+        "email",
+        "dashboard"
     ]
 }
