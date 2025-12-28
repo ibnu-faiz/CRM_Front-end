@@ -1,6 +1,5 @@
 // app/(main)/dashboard/page.tsx
-import StatsCard from '@/components/dashboard/StatsCard';
-import MetricCard from '@/components/dashboard/MetricCard';
+
 import LeadsChart from '@/components/dashboard/LeadsChart';
 import RevenueChart from '@/components/dashboard/RevenueChart';
 import ActivityList from '@/components/dashboard/ActivityList';
@@ -11,9 +10,12 @@ import QuarterSummary from '@/components/dashboard/QuarterSummary';
 import { Button } from '@/components/ui/button';
 import { Filter, Wallet, TrendingUp, Trophy, Target, Users, UserCheck } from 'lucide-react';
 
+import DashboardStats from '@/components/dashboard/DashboardStats';
+
+
 export default function DashboardPage() {
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6 transition-all duration-300 ease-in-out">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -27,32 +29,10 @@ export default function DashboardPage() {
       </div>
 
       {/* Main Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <StatsCard
-          title="Total Pipeline Value"
-          value="Rp 10.000.000"
-          change="+5%"
-          isPositive={true}
-          icon={<Wallet className="w-4 h-4" />}
-        />
-        <StatsCard
-          title="Active Deals"
-          value="152"
-          change="+3%"
-          isPositive={true}
-          icon={<TrendingUp className="w-4 h-4" />}
-        />
-        <StatsCard
-          title="Average Deals"
-          value="Rp 15.000.000"
-          change="+3%"
-          isPositive={true}
-          icon={<Target className="w-4 h-4" />}
-        />
-      </div>
+      <DashboardStats />
 
       {/* Metrics Row */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {/* <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <MetricCard
           icon={<Trophy className="w-5 h-5" />}
           label="Total Won"
@@ -81,7 +61,7 @@ export default function DashboardPage() {
           change="+3%"
           isPositive={true}
         />
-      </div>
+      </div> */}
 
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
