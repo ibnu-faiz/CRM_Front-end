@@ -27,9 +27,7 @@ export default function NotificationTabContent() {
             </div>
         </div>
 
-        <div className="flex justify-end mt-8">
-            <Button className="bg-gray-900 gap-2"><Save className="w-4 h-4"/> Save Preferences</Button>
-        </div>
+     
     </div>
   );
 }
