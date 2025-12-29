@@ -33,11 +33,6 @@ const formatDate = (isoString?: string) => {
     month: 'long', day: 'numeric', year: 'numeric',
   });
 };
-// Helper agar enter di text area jadi baris baru
-const NewlineText = ({ text }: { text: string }) => {
-  if (!text) return null;
-  return <>{text.split('\n').map((str, i) => <div key={i}>{str}</div>)}</>;
-};
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -63,19 +58,14 @@ export default function InvoicePreviewModal({
   const tax = meta.tax || 0;
   const totalAmount = meta.totalAmount || 0;
 
-  // --- FUNGSI DOWNLOAD (PERBAIKAN TOKEN) ---
+  // --- FUNGSI DOWNLOAD ---
   const handleDownloadPdf = async () => {
     if (!invoiceId) return;
     setIsDownloading(true);
     
     try {
-       // 1. AMBIL TOKEN (PENTING!)
        const token = localStorage.getItem('token'); 
-       
-       // 2. KIRIM TOKEN KE URL
        const pdfUrl = `/api/invoices/${invoiceId}/pdf?leadId=${leadId}&token=${token}`;
-       
-       // 3. Buka di tab baru
        window.open(pdfUrl, '_blank');
        
     } catch (error) {
@@ -122,9 +112,11 @@ export default function InvoicePreviewModal({
               {/* 1. Header Invoice */}
                <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
-                  <h1 className="text-2xl font-bold text-[#000000] mb-1">Invoice</h1> {/* text-black -> text-[#000000] */}
+                  <h1 className="text-2xl font-bold text-[#000000] mb-1">Invoice</h1>
                   <p className="text-sm text-[#6b7280] font-medium tracking-wide break-all">
-                    {invoice.content}
+                    {/* --- PERBAIKAN DISINI --- */}
+                    {/* Gunakan title (format baru) atau content (format lama) */}
+                    {invoice.title || invoice.content || '(No Number)'}
                   </p>
                 </div>
                 <div className="text-right flex-shrink-0">
@@ -139,7 +131,7 @@ export default function InvoicePreviewModal({
                 <div className="min-w-0 flex flex-col">
                   <h4 className="text-sm font-semibold text-[#111827] mb-2">Billed By:</h4>
                   <div className="text-sm text-[#4b5563] leading-relaxed break-words flex-1">
-                    <div className="font-bold text-[#000000] mb-1"> {/* text-black -> text-[#000000] */}
+                    <div className="font-bold text-[#000000] mb-1">
                       {billedBy.split('\n')[0]}
                     </div>
                     <div className="whitespace-pre-wrap">
@@ -155,7 +147,7 @@ export default function InvoicePreviewModal({
                  <div className="min-w-0 flex flex-col">
                   <h4 className="text-sm font-semibold text-[#111827] mb-2">Billed To:</h4>
                   <div className="text-sm text-[#4b5563] leading-relaxed break-words flex-1">
-                    <div className="font-bold text-[#000000] mb-1"> {/* text-black -> text-[#000000] */}
+                    <div className="font-bold text-[#000000] mb-1">
                       {billedTo.split('\n')[0] || 'Client Name'}
                     </div>
                     <div className="whitespace-pre-wrap">
@@ -236,7 +228,7 @@ export default function InvoicePreviewModal({
                 {/* Notes */}
                 {notes && (
                   <div className="bg-[#f3f4f6] p-4 rounded-lg border border-[#f3f4f6]">
-                    <h4 className="font-bold mb-1 text-sm text-[#000000]">Notes</h4> {/* text-black -> text-[#000000] */}
+                    <h4 className="font-bold mb-1 text-sm text-[#000000]">Notes</h4>
                     <p className="text-sm text-[#4b5563] leading-relaxed">{notes}</p>
                   </div>
                 )}

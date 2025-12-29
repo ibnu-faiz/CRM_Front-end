@@ -19,10 +19,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Trash2, Loader2, Info } from "lucide-react";
+import { Plus, Trash2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { fetcher } from "@/lib/fetcher";
-import { LeadActivity, Lead } from "@/lib/types";
+import { LeadActivity } from "@/lib/types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -44,7 +44,7 @@ interface AddInvoiceModalProps {
   leadId: string;
   invoiceId?: string | null;
   onInvoiceAdded: () => void;
-  lead?: any; // Ubah ke 'any' sebentar untuk menangani nested object { lead: ... }
+  lead?: any;
 }
 
 const formatToDate = (value: any) => {
@@ -78,14 +78,11 @@ const parseLegacyString = (fullText: string) => {
   return { company, email, address: addressLines.join("\n") };
 };
 
-// --- HELPER BARU: MEMBUKA BUNGKUS DATA ---
 const getActualLead = (data: any) => {
   if (!data) return null;
-  // Jika data punya properti '.lead' di dalamnya (Nested), ambil isinya
   if (data.lead && typeof data.lead === "object") {
     return data.lead;
   }
-  // Jika tidak nested, kembalikan data apa adanya
   return data;
 };
 
@@ -99,21 +96,15 @@ export default function AddInvoiceModal({
 }: AddInvoiceModalProps) {
   const isEditMode = invoiceId !== null && invoiceId !== undefined;
 
-  // --- DATA LEAD HANDLING ---
-  // Fetch backup jika parent tidak kirim props
   const { data: fetchedLead } = useSWR(
     open && leadId && !lead ? `${API_URL}/leads/${leadId}` : null,
     fetcher
   );
 
-  // Gunakan Helper 'getActualLead' untuk membersihkan struktur data
   const rawData = lead || fetchedLead;
   const activeLead = getActualLead(rawData);
 
-  // Debugging (Opsional: Cek di console apakah data sudah bersih)
-  // console.log("Final Active Lead Data:", activeLead);
-
-  // --- STATE FORM ---
+  // --- STATE ---
   const [invoiceNo, setInvoiceNo] = useState("");
   const [status, setStatus] = useState("draft");
   const [invoiceDate, setInvoiceDate] = useState("");
@@ -140,8 +131,10 @@ export default function AddInvoiceModal({
 
   const addItem = () =>
     setItems([...items, { name: "", qty: 1, unitPrice: 0, total: 0 }]);
+
   const removeItem = (index: number) =>
     setItems(items.filter((_, i) => i !== index));
+
   const updateItem = (index: number, field: keyof InvoiceItem, value: any) => {
     const newItems = [...items];
     let newItem = { ...newItems[index], [field]: value };
@@ -155,11 +148,10 @@ export default function AddInvoiceModal({
     setItems(newItems);
   };
 
-  // --- EFFECT 1: MODE CREATE & AUTO-FILL ---
+  // --- EFFECT 1: RESET & AUTO-FILL (CREATE MODE) ---
   useEffect(() => {
     if (open && !isEditMode) {
-      // 1. Reset Form
-      setInvoiceNo("");
+      setInvoiceNo(""); // Reset jadi string kosong, JANGAN null/undefined
       setStatus("draft");
       setInvoiceDate(new Date().toISOString().split("T")[0]);
       setDueDate("");
@@ -167,14 +159,11 @@ export default function AddInvoiceModal({
       setNotes("");
       setError("");
 
-      // 2. Isi Billed By
       setByCompany(DEF_BY_COMPANY);
       setByAddress(DEF_BY_ADDRESS);
       setByEmail(DEF_BY_EMAIL);
 
-      // 3. Isi Billed To (Auto Fill)
       if (activeLead) {
-        // Ambil data dari objek yang sudah "dibuka bungkusnya"
         const name = activeLead.company || activeLead.contacts || "";
         const email = activeLead.email || "";
 
@@ -187,9 +176,9 @@ export default function AddInvoiceModal({
         setToAddress("");
       }
     }
-  }, [open, isEditMode, activeLead]); // activeLead sudah bersih sekarang
+  }, [open, isEditMode, activeLead]);
 
-  // --- EFFECT 2: MODE EDIT ---
+  // --- EFFECT 2: FETCH DATA (EDIT MODE) ---
   useEffect(() => {
     if (open && isEditMode && invoiceId) {
       const fetchInvoice = async () => {
@@ -198,13 +187,18 @@ export default function AddInvoiceModal({
           const data = (await fetcher(
             `${API_URL}/leads/${leadId}/invoices/${invoiceId}`
           )) as LeadActivity;
+
           const meta = data.meta || {};
 
-          setInvoiceNo(data.content);
+          // --- FIX UTAMA: Mencegah Undefined ---
+          // Ambil dari data.title (format baru), fallback ke content, fallback ke ""
+          setInvoiceNo(data.title || data.content || "");
+
           setStatus(meta.status || "draft");
           setInvoiceDate(formatToDate(meta.invoiceDate || data.createdAt));
           setDueDate(formatToDate(meta.dueDate));
 
+          // Set Billed By
           if (meta.byCompany) {
             setByCompany(meta.byCompany);
             setByAddress(meta.byAddress || "");
@@ -216,6 +210,7 @@ export default function AddInvoiceModal({
             setByEmail(parsed.email);
           }
 
+          // Set Billed To
           if (meta.toCompany) {
             setToCompany(meta.toCompany);
             setToAddress(meta.toAddress || "");
@@ -241,6 +236,7 @@ export default function AddInvoiceModal({
     }
   }, [open, isEditMode, invoiceId, leadId]);
 
+  // --- SUBMIT HANDLER ---
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -249,26 +245,45 @@ export default function AddInvoiceModal({
     const combinedBilledBy = `${byCompany}\n${byAddress}\n${byEmail}`;
     const combinedBilledTo = `${toCompany}\n${toAddress}\n${toEmail}`;
 
+    // --- STRUKTUR DATA BARU (Sesuai Controller) ---
     const payload = {
-      ...(isEditMode && { content: invoiceNo }),
-      status,
-      invoiceDate: invoiceDate
-        ? new Date(invoiceDate).toISOString()
-        : new Date().toISOString(),
-      dueDate: dueDate ? new Date(dueDate).toISOString() : null,
-      billedBy: combinedBilledBy,
-      billedTo: combinedBilledTo,
-      byCompany,
-      byAddress,
-      byEmail,
-      toCompany,
-      toAddress,
-      toEmail,
-      items,
-      notes,
-      subtotal,
-      tax,
-      totalAmount,
+      type: "INVOICE",
+
+      // Kirim Invoice No ke 'title'.
+      // Jika CREATE dan kosong, Backend akan auto-generate.
+      // Jika EDIT, kita kirim invoiceNo yang ada.
+      title: invoiceNo || "",
+      content: invoiceNo || "", // Fallback untuk safety
+
+      description: `Invoice for ${toCompany}`,
+
+      // Semua detail masuk ke META
+      meta: {
+        status,
+
+        invoiceDate: invoiceDate
+          ? new Date(invoiceDate).toISOString()
+          : new Date().toISOString(),
+        dueDate: dueDate ? new Date(dueDate).toISOString() : null,
+
+        // Simpan field terpisah agar mudah diedit lagi
+        byCompany,
+        byAddress,
+        byEmail,
+        toCompany,
+        toAddress,
+        toEmail,
+
+        // Simpan gabungan string (legacy support / display)
+        billedBy: combinedBilledBy,
+        billedTo: combinedBilledTo,
+
+        items,
+        notes,
+        subtotal,
+        tax,
+        totalAmount,
+      },
     };
 
     const url = isEditMode
@@ -285,12 +300,18 @@ export default function AddInvoiceModal({
         },
         body: JSON.stringify(payload),
       });
-      if (!res.ok) throw new Error("Failed to save Invoice");
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || "Failed to save Invoice");
+      }
+
       toast.success(isEditMode ? "Invoice updated" : "Invoice created");
       onInvoiceAdded();
       onOpenChange(false);
-    } catch (err) {
-      setError("Gagal menyimpan invoice");
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || "Gagal menyimpan invoice");
     } finally {
       setLoading(false);
     }
@@ -310,7 +331,9 @@ export default function AddInvoiceModal({
               <Label htmlFor="invoiceNumber">Invoice Number</Label>
               <Input
                 id="invoiceNumber"
-                value={isEditMode ? invoiceNo : ""}
+                // --- FIX Controlled/Uncontrolled ---
+                // Pastikan selalu string, jangan undefined
+                value={invoiceNo || ""}
                 placeholder={isEditMode ? "" : "(Auto Generated by System)"}
                 readOnly
                 className="bg-gray-100 text-gray-500 font-medium"
@@ -333,7 +356,7 @@ export default function AddInvoiceModal({
                   <SelectItem value="paid">Paid</SelectItem>
                   <SelectItem value="overdue">Overdue</SelectItem>
                 </SelectContent>
-              </Select>   
+              </Select>
             </div>
           </div>
 
@@ -342,7 +365,7 @@ export default function AddInvoiceModal({
               <Label>Invoice Date</Label>
               <Input
                 type="date"
-                value={invoiceDate}
+                value={invoiceDate || ""} // Safety check
                 onChange={(e) => setInvoiceDate(e.target.value)}
                 disabled={loading}
                 required
@@ -352,13 +375,15 @@ export default function AddInvoiceModal({
               <Label>Due Date</Label>
               <Input
                 type="date"
-                value={dueDate}
+                value={dueDate || ""} // Safety check
                 onChange={(e) => setDueDate(e.target.value)}
                 disabled={loading}
               />
             </div>
           </div>
 
+          {/* ... SISA FORM TAMPILAN SAMA ... */}
+          {/* Bagian Billed By & To aman karena state string diinisialisasi di atas */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-3 bg-gray-50 p-4 rounded-lg border">
               <h3 className="font-semibold text-gray-700 border-b pb-2">
@@ -427,6 +452,7 @@ export default function AddInvoiceModal({
             </div>
           </div>
 
+          {/* ITEM LIST */}
           <div className="grid gap-1.5">
             <Label>Items</Label>
             <div className="mt-2 border rounded-lg overflow-hidden">
@@ -464,8 +490,8 @@ export default function AddInvoiceModal({
                           onChange={(e) =>
                             updateItem(index, "qty", e.target.value)
                           }
-                          // Tambahkan class ajaib ini di bagian akhir
-                          className="text-center border border-gray-300 focus-visible:ring-1 focus-visible:ring-gray-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          // Tambahkan class ajaib di sini
+                          className="text-center border border-gray-300 focus-visible:ring-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
                       </td>
                       <td className="p-1">
@@ -475,7 +501,8 @@ export default function AddInvoiceModal({
                           onChange={(e) =>
                             updateItem(index, "unitPrice", e.target.value)
                           }
-                          className="text-center border border-gray-300 focus-visible:ring-1 focus-visible:ring-gray-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          // Tambahkan class ajaib di sini juga
+                          className="text-center border border-gray-300 focus-visible:ring-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
                       </td>
                       <td className="p-2 text-right font-medium">
@@ -507,6 +534,8 @@ export default function AddInvoiceModal({
               <Plus className="w-4 h-4" /> Add Item
             </Button>
           </div>
+
+          {/* TOTAL & NOTES */}
           <div className="grid grid-cols-2 gap-8">
             <div className="grid gap-1.5">
               <Label>Notes</Label>
@@ -538,7 +567,9 @@ export default function AddInvoiceModal({
               </div>
             </div>
           </div>
+
           {error && <div className="text-red-500 text-sm">{error}</div>}
+
           <div className="flex gap-2 pt-4 border-t">
             <Button
               type="submit"

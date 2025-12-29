@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useRef } from "react"; // Tambahan 1
+import { useSearchParams } from "next/navigation"; // Tambahan 2
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -9,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { MoreHorizontal, Receipt, Check, ChevronDown } from "lucide-react";
+import { MoreHorizontal, ReceiptText, Check, ChevronDown } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -71,6 +73,24 @@ export default function InvoiceView({
   onPreviewInvoice,
   onUpdateStatus,
 }: InvoiceViewProps) {
+  
+  // --- INTEGRASI HIGHLIGHT DARI DASHBOARD ---
+  const searchParams = useSearchParams();
+  const highlightId = searchParams.get("highlight");
+  // Ref diganti ke HTMLTableRowElement karena kita pakai Table
+  const itemRefs = useRef<Record<string, HTMLTableRowElement | null>>({});
+
+  useEffect(() => {
+    if (highlightId && itemRefs.current[highlightId]) {
+      setTimeout(() => {
+        itemRefs.current[highlightId]?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+      }, 500); // Delay sedikit agar table render sempurna
+    }
+  }, [highlightId, invoices]);
+
   if (error)
     return <div className="text-red-500 p-4">Failed to load Invoices</div>;
 
@@ -80,7 +100,6 @@ export default function InvoiceView({
         <Table className="table-fixed w-full">
           <TableHeader>
             <TableRow className="bg-gray-50 hover:bg-gray-50 border-b border-gray-200">
-              {/* Header disesuaikan dengan padding body agar lurus */}
               <TableHead className="w-[25%] px-2 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">
                 Invoice No.
               </TableHead>
@@ -105,32 +124,47 @@ export default function InvoiceView({
               invoices.map((invoice) => {
                 const meta = invoice.meta || {};
                 const status = meta.status || "draft";
-                const total = meta.totalAmount || 0;
+                // Fallback amount agar aman
+                const total = meta.totalAmount || meta.amount || 0;
                 const statusColor = getStatusColorClass(status);
+
+                // Cek Highlight
+                const isHighlighted = highlightId === invoice.id;
 
                 return (
                   <TableRow
                     key={invoice.id}
-                    className="hover:bg-gray-50/50 transition-colors border-b border-gray-100 last:border-0"
+                    ref={(el) => { itemRefs.current[invoice.id] = el; }} // Pasang REF disini
+                    className={`transition-colors border-b border-gray-100 last:border-0 ${
+                        isHighlighted 
+                          ? "bg-blue-50/80 hover:bg-blue-100/50 border-blue-200 shadow-inner" // Warna Highlight
+                          : "hover:bg-gray-50/50"
+                    }`}
                   >
-                    {/* Invoice No */}
+                    {/* Invoice No: TITLE */}
                     <TableCell className="px-2 py-2 align-middle text-center">
                       <button
                         onClick={() => onPreviewInvoice(invoice.id)}
                         className="text-left text-blue-600 hover:text-blue-800 hover:underline font-semibold text-sm"
-                        title={invoice.content}
+                        title={invoice.title || invoice.content} 
                       >
-                        {invoice.content}
+                        {invoice.title || invoice.content || "(No Number)"}
                       </button>
+                      {/* Subtitle Company Name agar lebih lengkap */}
+                      <div className="text-[10px] text-gray-500 truncate max-w-[150px] mx-auto">
+                        {meta.companyName || ""}
+                      </div>
                     </TableCell>
 
                     {/* Date */}
                     <TableCell className="px-1 py-2 text-sm text-gray-600 align-middle whitespace-nowrap text-center">
-                      {formatDate(meta.invoiceDate)}
+                      {formatDate(meta.invoiceDate || invoice.createdAt)}
                     </TableCell>
 
                     {/* Due Date */}
-                    <TableCell className="px-2 py-2 text-sm text-gray-600 align-middle whitespace-nowrap text-center">
+                    <TableCell className={`px-2 py-2 text-sm align-middle whitespace-nowrap text-center ${
+                        status === 'overdue' ? 'text-red-600 font-semibold' : 'text-gray-600'
+                    }`}>
                       {formatDate(meta.dueDate)}
                     </TableCell>
 
@@ -191,7 +225,7 @@ export default function InvoiceView({
                             onClick={() => onPreviewInvoice(invoice.id)}
                             className="cursor-pointer"
                           >
-                            <Receipt className="w-4 h-4 mr-2 text-gray-500" />
+                            <ReceiptText className="w-4 h-4 mr-2 text-gray-500" />
                             Preview
                           </DropdownMenuItem>
                           <DropdownMenuItem
@@ -221,9 +255,11 @@ export default function InvoiceView({
                 >
                   <div className="flex flex-col items-center gap-3">
                     <div className="p-3 bg-gray-50 rounded-full">
-                      <Receipt className="w-8 h-8 text-gray-300" />
+                      <ReceiptText className="w-8 h-8 text-gray-300" />
                     </div>
-                    <p className="text-gray-900 text-lg font-medium">No invoices found</p>
+                    <p className="text-gray-900 text-lg font-medium">
+                      No invoices found
+                    </p>
                     <p className="text-sm text-gray-500">
                       Create a new invoice to get started.
                     </p>
