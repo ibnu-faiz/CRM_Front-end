@@ -5,14 +5,13 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Card, CardContent } from '@/components/ui/card';
 import { StickyNote, Edit, Trash2, Calendar, Paperclip } from 'lucide-react';
 import { LeadActivity } from '@/lib/types';
-import Image from 'next/image'; // 1. Impor Next.js Image
+import Image from 'next/image';
 
 // --- Helper di luar komponen ---
 
 // 2. Fungsi Helper untuk Cek Tipe File
 const isImage = (url: string) => {
   if (!url) return false;
-  // Memeriksa ekstensi file yang umum untuk gambar
   return /\.(jpg|jpeg|png|gif|webp)$/i.test(url);
 };
 
@@ -20,17 +19,13 @@ const isImage = (url: string) => {
 const getFileName = (url: string) => {
   if (!url) return 'attachment';
   try {
-    // Decode URI (misal: "file%20saya.pdf" -> "file saya.pdf")
-    // Ambil bagian terakhir setelah '/'
     return decodeURIComponent(url.split('/').pop() || 'attachment');
   } catch (e) {
-    // Fallback jika terjadi error decoding
     return url.split('/').pop() || 'attachment';
   }
 };
 // ---
 
-// Terima 'notes' dan 'error' sebagai props
 interface NotesViewProps {
   notes: LeadActivity[] | undefined;
   error: any;
@@ -60,8 +55,12 @@ export default function NotesView({ notes, error, onEditNote, onDeleteNote }: No
       <div className="space-y-4">
         {notes && notes.length > 0 ? (
           notes.map((note) => {
-            // 4. Ambil URL Attachment dari Meta
+            // Ambil URL Attachment
             const attachmentUrl = note.meta?.attachmentUrl;
+            
+            // --- PERBAIKAN DISINI ---
+            // Ambil text dari description (Schema Baru) atau content (Legacy)
+            const noteText = note.description || note.content || '';
 
             return (
               <Card key={note.id} className="hover:shadow-md transition-shadow">
@@ -77,7 +76,7 @@ export default function NotesView({ notes, error, onEditNote, onDeleteNote }: No
                       <div>
                         <h4 className="font-semibold text-gray-900">Note</h4>
                         <p className="text-sm text-gray-500">
-                          Note by {note.createdBy.name}
+                          Note by {note.createdBy?.name || 'User'}
                         </p>
                       </div>
                     </div>
@@ -106,25 +105,27 @@ export default function NotesView({ notes, error, onEditNote, onDeleteNote }: No
                   
                   {/* Content */}
                   <p className="text-gray-700 whitespace-pre-wrap">
-                    {note.content}
+                    {noteText}
                   </p>
 
-                  {/* --- 5. Tampilkan Attachment (Blok Baru) --- */}
+                  {/* --- Tampilkan Attachment --- */}
                   {attachmentUrl && (
                     <div className="mt-4 rounded-lg border overflow-hidden">
                       {isImage(attachmentUrl) ? (
-                        // Jika ini gambar, tampilkan gambar
+                        // Jika gambar, tampilkan preview
                         <a href={attachmentUrl} target="_blank" rel="noopener noreferrer">
+                          {/* Note: Pastikan domain gambar sudah di allow di next.config.js jika pakai external URL */}
                           <Image 
                             src={attachmentUrl} 
                             alt="Attachment" 
-                            width={800} // Lebar kontainer
-                            height={400} // Tinggi default
-                            className="w-full h-auto object-cover" 
+                            width={800} 
+                            height={400} 
+                            className="w-full h-auto object-cover max-h-96" 
+                            unoptimized // Opsional: gunakan jika domain belum disetup di config
                           />
                         </a>
                       ) : (
-                        // Jika file lain (PDF, DOCX, dll), tampilkan link
+                        // Jika file lain, tampilkan link download
                         <a 
                           href={attachmentUrl} 
                           target="_blank" 

@@ -52,7 +52,11 @@ export default function AddNoteModal({
           const noteData = await fetcher(
             `${API_URL}/leads/${leadId}/notes/${noteId}`
           ) as LeadActivity;
-          setContent(noteData.content);
+          
+          // --- PERBAIKAN DISINI ---
+          // Ambil description (schema baru), fallback ke content (legacy)
+          setContent(noteData.description || noteData.content || '');
+          
           setExistingAttachmentUrl(noteData.meta?.attachmentUrl || null);
         } catch (err) {
           setError('Failed to load record Notes');
@@ -87,8 +91,13 @@ export default function AddNoteModal({
 
     // --- BUAT FORMDATA ---
     const formData = new FormData();
-    formData.append('content', content);
     
+    // Kita kirim sebagai 'content' karena controller memetakannya ke 'description'
+    formData.append('content', content); 
+    
+    // Opsional: Kirim title default "Note"
+    formData.append('title', 'Note');
+
     if (file) {
       formData.append('attachment', file); // Tambahkan file baru
     }
