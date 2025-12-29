@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Send, Loader2, Info, Paperclip, X, Save, Lock } from 'lucide-react'; // Tambah icon
+import { Send, Loader2, Info, Paperclip, X, Save, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import { fetcher } from '@/lib/fetcher';
 import { LeadActivity } from '@/lib/types';
@@ -46,12 +46,11 @@ export default function AddEmailModal({
   const [attachment, setAttachment] = useState<File | null>(null);
   
   // State Status
-  const [emailStatus, setEmailStatus] = useState<'DRAFT' | 'SENT'>('DRAFT'); // Default Draft buat baru
+  const [emailStatus, setEmailStatus] = useState<'DRAFT' | 'SENT'>('DRAFT'); 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   // Cek apakah form harus dikunci (Read Only)
-  // Dikunci jika Mode Edit DAN Statusnya SENT
   const isReadOnly = isEditMode && emailStatus === 'SENT';
 
   // 1. Decode Token
@@ -83,15 +82,16 @@ export default function AddEmailModal({
           const data = await fetcher(`${API_URL}/leads/${leadId}/emails/${emailId}`) as LeadActivity;
           const meta = data.meta || {};
           
-          setSubject(data.content);
+          // --- FIX UTAMA: Ambil Title (Schema Baru) ---
+          // Fallback ke content (Legacy), lalu string kosong (Safety)
+          setSubject(data.title || data.content || '');
+          
           setTo(meta.to || '');
           setCc(meta.cc || '');
           setBcc(meta.bcc || '');
           setReplyTo(meta.replyTo || ''); 
           setMessageBody(meta.messageBody || '');
           
-          // SET STATUS (Penting!)
-          // Jika tidak ada status di DB (data lama), anggap SENT agar aman
           setEmailStatus(meta.status || 'SENT'); 
           
           setAttachment(null); 
@@ -108,11 +108,14 @@ export default function AddEmailModal({
         setReplyTo('');
         setMessageBody('');
         setAttachment(null);
-        setEmailStatus('DRAFT'); // Default baru adalah Draft (sebelum dikirim)
+        setEmailStatus('DRAFT');
         
         try {
           const leadRes = await fetcher(`${API_URL}/leads/${leadId}`);
-          const leadEmail = leadRes.email || leadRes.lead?.email;
+          // Handle struktur response yang mungkin berbeda (array vs object)
+          const leadData = leadRes.lead ? leadRes.lead : leadRes; 
+          const leadEmail = leadData.email;
+          
           if (leadEmail) setTo(leadEmail);
           else setTo('');
         } catch (e) {
@@ -130,18 +133,13 @@ export default function AddEmailModal({
     }
   };
 
-  // Fungsi Submit Universal (Bisa Send, Bisa Save Draft)
+  // Fungsi Submit Universal
   const handleAction = async (action: 'SEND' | 'DRAFT') => {
     setLoading(true);
     setError('');
     const token = localStorage.getItem('token');
 
     try {
-      // Tentukan URL & Method
-      // Create -> POST /email
-      // Edit -> PATCH /emails/:id
-      // Tapi karena controller kita sudah canggih, PATCH bisa kirim email juga
-      
       let url = isEditMode 
         ? `${API_URL}/leads/${leadId}/emails/${emailId}`
         : `${API_URL}/leads/${leadId}/email`;
@@ -152,6 +150,10 @@ export default function AddEmailModal({
       // Field wajib
       formData.append('to', to);
       formData.append('subject', subject);
+      
+      // --- FIX UTAMA: Kirim 'title' eksplisit ---
+      formData.append('title', subject); 
+      
       formData.append('message', messageBody);
       
       // Field opsional
@@ -161,13 +163,10 @@ export default function AddEmailModal({
       if (attachment) formData.append('file', attachment);
 
       // FLAG PENTING: isDraft
-      // Jika action == 'DRAFT', kirim true. Jika 'SEND', kirim false.
       formData.append('isDraft', action === 'DRAFT' ? 'true' : 'false');
 
-      // Khusus mode edit text (tanpa file), controller PATCH butuh field 'content' utk subject
-      if (isEditMode) {
-        formData.append('content', subject); 
-      }
+      // (Legacy Support) Hapus jika backend sudah full title
+      // formData.append('content', subject); 
 
       const res = await fetch(url, {
         method: method,
@@ -205,7 +204,6 @@ export default function AddEmailModal({
           </DialogTitle>
         </DialogHeader>
 
-        {/* PERINGATAN READ ONLY */}
         {isReadOnly && (
           <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-2">
             <div className="flex">
@@ -263,7 +261,6 @@ export default function AddEmailModal({
           <div className="grid gap-1.5">
             <Label className="flex items-center gap-2"><Paperclip className="w-3.5 h-3.5" /> Attachment</Label>
             
-            {/* Logic Tampilan Input File */}
             {!isReadOnly ? (
               <div className="flex items-center gap-2">
                 <Input 
@@ -286,12 +283,10 @@ export default function AddEmailModal({
           {/* TOMBOL AKSI */}
           <div className="flex gap-2 pt-4 border-t mt-2">
             
-            {/* 1. Tombol Cancel (Selalu Ada) */}
             <Button type="button" variant="outline" className="flex-1" onClick={() => onOpenChange(false)} disabled={loading}>
               Close
             </Button>
 
-            {/* 2. Tombol Save Draft (Hanya jika belum SENT) */}
             {!isReadOnly && (
               <Button 
                 type="button" 
@@ -305,7 +300,6 @@ export default function AddEmailModal({
               </Button>
             )}
 
-            {/* 3. Tombol Send (Hanya jika belum SENT) */}
             {!isReadOnly && (
               <Button 
                 type="button" 
