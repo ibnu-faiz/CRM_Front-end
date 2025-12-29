@@ -19,6 +19,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from '@/components/ui/label';
+import { useSearchParams } from 'next/navigation';
+import { useEffect, useRef } from 'react';
 
 // --- Helper Functions ---
 // Format untuk tanggal di header (Created At)
@@ -59,6 +61,20 @@ interface CallViewProps {
 }
 
 export default function CallView({ calls, error, onEditCall, onDeleteCall, onUpdateCall }: CallViewProps) {
+
+  const searchParams = useSearchParams();
+  const highlightId = searchParams.get('highlight');
+
+  const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
+  useEffect(() => {
+    if (highlightId && itemRefs.current[highlightId]) {
+      itemRefs.current[highlightId]?.scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'center' 
+      });
+    }
+  }, [highlightId, calls]);
   
   if (error) {
     return <div className="text-red-500 p-4">Failed to load Call {(error as any).info?.error}</div>;
@@ -76,12 +92,12 @@ export default function CallView({ calls, error, onEditCall, onDeleteCall, onUpd
     );
   }
 
-  return (
+ return (
     <div className="space-y-4">
       <div className="space-y-4">
         {calls && calls.length > 0 ? (
           calls.map((call) => {
-            const title = call.content;
+            const title = call.title || call.content || '(No Title)';
             const meta = call.meta || {};
             const callTime = meta.callTime;
             const callNotes = meta.callNotes;
@@ -90,134 +106,142 @@ export default function CallView({ calls, error, onEditCall, onDeleteCall, onUpd
             const contactName = meta.contactName;
             const duration = meta.duration;
 
+            // --- LOGIKA HIGHLIGHT ---
+            const isHighlighted = highlightId === call.id;
+
             return (
-              <Card key={call.id} className="hover:shadow-md transition-shadow">
-                <CardContent className="p-6">
-                  {/* Call Header */}
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-start gap-3">
-                      <Avatar className="w-10 h-10">
-                        <AvatarFallback className="bg-gray-300 text-black">
-                          <Phone className="w-5 h-5 fill-current" />
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <h4 className="font-semibold text-gray-900">{title}</h4>
-                        <p className="text-sm text-gray-500">
-                          Created by {call.createdBy.name}
-                        </p>
+              <div 
+                key={call.id} 
+                ref={(el) => { itemRefs.current[call.id] = el; }} // Simpan ref untuk scroll
+                className={`rounded-lg transition-all duration-500 ${
+                  isHighlighted ? 'ring-2 ring-blue-500 ring-offset-2' : ''
+                }`}
+              >
+                <Card className={`hover:shadow-md transition-shadow ${isHighlighted ? 'bg-blue-50/50 border-blue-200' : ''}`}>
+                  <CardContent className="p-6">
+                    {/* Call Header */}
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex items-start gap-3">
+                        <Avatar className="w-10 h-10">
+                          <AvatarFallback className="bg-gray-300 text-black">
+                            <Phone className="w-5 h-5 fill-current" />
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <h4 className="font-semibold text-gray-900 flex items-center gap-2">
+                            {title}
+                            {isHighlighted && (
+                              <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-bold animate-pulse">
+                              
+                              </span>
+                            )}
+                          </h4>
+                          <p className="text-sm text-gray-500">
+                            Created by {call.createdBy?.name || 'User'}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 text-sm text-gray-500">
+                          <Calendar className="w-4 h-4" />
+                          <span>{formatCreationDate(call.createdAt)}</span>
+                        </div>
+                        
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreHorizontal className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => onEditCall(call.id)}>
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => onDeleteCall(call.id)} className="text-red-500">
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      {/* TANGGAL DIBUAT (Created At) */}
-                      <div className="flex items-center gap-2 text-sm text-gray-500">
-                        <Calendar className="w-4 h-4" />
-                        <span>{formatCreationDate(call.createdAt)}</span>
-                      </div>
-                      
-                      {/* Tombol Edit/Delete */}
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="w-4 h-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => onEditCall(call.id)}>
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => onDeleteCall(call.id)} className="text-red-500">
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </div>
 
-                  {/* --- TAMPILAN DETAIL BARU --- */}
-                  <div className="grid grid-cols-2 gap-4 mb-4 p-4 bg-gray-50 rounded-lg border">
-                    {/* Contact */}
-                    <div className="flex items-start gap-3">
-                      <User className="w-5 h-5 text-gray-500 mt-1" />
-                      <div>
-                        <p className="text-sm font-medium">Contact</p>
-                        <p className="text-sm text-gray-600">{contactName || '-'}</p>
+                    {/* TAMPILAN DETAIL */}
+                    <div className="grid grid-cols-2 gap-4 mb-4 p-4 bg-gray-50 rounded-lg border">
+                      <div className="flex items-start gap-3">
+                        <User className="w-5 h-5 text-gray-500 mt-1" />
+                        <div>
+                          <p className="text-sm font-medium">Contact</p>
+                          <p className="text-sm text-gray-600">{contactName || '-'}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <Clock className="w-5 h-5 text-gray-500 mt-1" />
+                        <div>
+                          <p className="text-sm font-medium">Duration</p>
+                          <p className="text-sm text-gray-600">{duration || '-'}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3 col-span-2">
+                        <Calendar className="w-5 h-5 text-gray-500 mt-1" />
+                        <div>
+                          <p className="text-sm font-medium">Call Time</p>
+                          <p className="text-sm text-gray-600">{formatCallDate(callTime)}</p>
+                          <p className="text-sm text-gray-600">at {formatCallTime(callTime)}</p>
+                        </div>
                       </div>
                     </div>
-                    {/* Duration */}
-                    <div className="flex items-start gap-3">
-                      <Clock className="w-5 h-5 text-gray-500 mt-1" />
-                      <div>
-                        <p className="text-sm font-medium">Duration</p>
-                        <p className="text-sm text-gray-600">{duration || '-'}</p>
-                      </div>
-                    </div>
-                    {/* Waktu Telepon */}
-                    <div className="flex items-start gap-3 col-span-2">
-                      <Calendar className="w-5 h-5 text-gray-500 mt-1" />
-                      <div>
-                        <p className="text-sm font-medium">Call Time</p>
-                        <p className="text-sm text-gray-600">{formatCallDate(callTime)}</p>
-                        <p className="text-sm text-gray-600">at {formatCallTime(callTime)}</p>
-                      </div>
-                    </div>
-                  </div>
 
-                  {/* Call Notes (jika ada) */}
-                  {callNotes && (
-                    <div className="mb-4">
-                      <p className="text-sm font-medium text-gray-700 mb-1">Call Notes</p>
-                      <p className="text-sm text-gray-600 whitespace-pre-wrap">{callNotes}</p>
-                    </div>
-                  )}
-
-                  {/* --- DROPDOWN INTERAKTIF BARU --- */}
-                  <div className="pt-4 border-t">
-                    <div className="grid grid-cols-2 gap-4">
-                      {/* Status Dropdown */}
-                      <div className="grid gap-1.5">
-                        <Label>Status</Label>
-                        <Select
-                          value={callStatus}
-                          onValueChange={(newStatus) => {
-                            onUpdateCall(call.id, { callStatus: newStatus });
-                          }}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Set status..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="scheduled">Scheduled</SelectItem>
-                            <SelectItem value="completed">Completed</SelectItem>
-                            <SelectItem value="missed">Missed</SelectItem>
-                          </SelectContent>
-                        </Select>
+                    {callNotes && (
+                      <div className="mb-4">
+                        <p className="text-sm font-medium text-gray-700 mb-1">Call Notes</p>
+                        <p className="text-sm text-gray-600 whitespace-pre-wrap">{callNotes}</p>
                       </div>
-                      
-                      {/* Result Dropdown */}
-                      <div className="grid gap-1.5">
-                        <Label>Result</Label>
-                        <Select
-                          value={callResult}
-                          onValueChange={(newResult) => {
-                            onUpdateCall(call.id, { callResult: newResult });
-                          }}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Set result..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="interested">Interested</SelectItem>
-                            <SelectItem value="not-interested">Not Interested</SelectItem>
-                            <SelectItem value="callback">Call Back Later</SelectItem>
-                          </SelectContent>
-                        </Select>
+                    )}
+
+                    <div className="pt-4 border-t">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="grid gap-1.5">
+                          <Label>Status</Label>
+                          <Select
+                            value={callStatus}
+                            onValueChange={(newStatus) => {
+                              onUpdateCall(call.id, { callStatus: newStatus });
+                            }}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Set status..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="scheduled">Scheduled</SelectItem>
+                              <SelectItem value="completed">Completed</SelectItem>
+                              <SelectItem value="missed">Missed</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        <div className="grid gap-1.5">
+                          <Label>Result</Label>
+                          <Select
+                            value={callResult}
+                            onValueChange={(newResult) => {
+                              onUpdateCall(call.id, { callResult: newResult });
+                            }}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Set result..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="interested">Interested</SelectItem>
+                              <SelectItem value="not-interested">Not Interested</SelectItem>
+                              <SelectItem value="callback">Call Back Later</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
                     </div>
-                  </div>
-
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              </div>
             );
           })
         ) : (

@@ -91,11 +91,18 @@ export default function AddCallModal({
           ) as LeadActivity;
           
           const meta = data.meta || {};
-          setCallTitle(data.content);
+          
+          // --- FIX 1: Ambil Title ---
+          setCallTitle(data.title || data.content || '');
+          
           setContactName(meta.contactName || '');
           setCallDirection(meta.callDirection || '');
-          setCallDate(formatToDate(meta.callTime));
-          setCallTime(formatToTime(meta.callTime));
+          
+          // Ambil waktu dari scheduledAt (jika ada) atau meta.callTime (legacy)
+          const timeSource = data.scheduledAt || meta.callTime;
+          setCallDate(formatToDate(timeSource));
+          setCallTime(formatToTime(timeSource));
+          
           setDuration(meta.duration || '15min');
           setCallStatus(meta.callStatus || '');
           setCallResult(meta.callResult || '');
@@ -132,14 +139,25 @@ export default function AddCallModal({
 
     const token = localStorage.getItem('token');
     
+    // Kalkulasi Waktu
+    const finalScheduledAt = combineDateAndTime(callDate, callTime);
+
     // Siapkan body untuk API
     const body = {
       type: ActivityType.CALL,
-      content: callTitle, // Title disimpan di 'content'
-      meta: {         // Sisanya disimpan di 'meta'
+      
+      // --- FIX 2: Struktur Payload Baru ---
+      title: callTitle,        // Masuk ke kolom 'title'
+      description: callNotes,  // Masuk ke kolom 'description' (biar muncul di list utama)
+      scheduledAt: finalScheduledAt, // Masuk ke kolom 'scheduledAt' (biar masuk kalender)
+      
+      // Fallback Legacy
+      content: callTitle, 
+
+      meta: {         
         contactName,
         callDirection,
-        callTime: combineDateAndTime(callDate, callTime),
+        callTime: finalScheduledAt,
         duration,
         callStatus,
         callResult,
@@ -148,8 +166,8 @@ export default function AddCallModal({
     };
 
     const url = isEditMode
-      ? `${API_URL}/leads/${leadId}/calls/${callId}` // URL Update (PATCH)
-      : `${API_URL}/leads/${leadId}/activities`;     // URL Create (POST)
+      ? `${API_URL}/leads/${leadId}/calls/${callId}`
+      : `${API_URL}/leads/${leadId}/activities`;    
     
     const method = isEditMode ? 'PATCH' : 'POST';
 
