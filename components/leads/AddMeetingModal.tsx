@@ -40,8 +40,6 @@ interface AddMeetingModalProps {
 // Menggabungkan YYYY-MM-DD dan HH:MM menjadi ISO String (UTC)
 const combineDateTime = (date?: string, time?: string) => {
   if (!date || !time) return null;
-  // Ini akan membuat tanggal dalam zona waktu LOKAL browser
-  // lalu .toISOString() akan mengonversinya ke UTC
   return new Date(`${date}T${time}`).toISOString();
 };
 
@@ -49,18 +47,16 @@ const combineDateTime = (date?: string, time?: string) => {
 const formatToDateInput = (isoString?: string) => {
   if (!isoString) return "";
   const date = new Date(isoString);
-  // Sesuaikan ke timezone lokal browser
   date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
   return date.toISOString().split("T")[0];
 };
 
 // Mengambil HH:MM dari ISO String (dalam zona waktu LOKAL)
 const formatToTimeInput = (isoString?: string) => {
-  if (!isoString) return "09:00"; // Default jam 9 pagi
+  if (!isoString) return "09:00"; 
   const date = new Date(isoString);
-  // Sesuaikan ke timezone lokal browser
   date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
-  return date.toISOString().slice(11, 16); // "HH:MM"
+  return date.toISOString().slice(11, 16); 
 };
 // ---
 
@@ -73,14 +69,14 @@ export default function AddMeetingModal({
 }: AddMeetingModalProps) {
   const isEditMode = meetingId !== null && meetingId !== undefined;
 
-  // --- State untuk semua field form ---
+  // --- State ---
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [date, setDate] = useState(""); // YYYY-MM-DD
-  const [startTime, setStartTime] = useState("09:00"); // HH:MM (24-jam)
-  const [endTime, setEndTime] = useState("10:00"); // HH:MM (24-jam)
+  const [date, setDate] = useState(""); 
+  const [startTime, setStartTime] = useState("09:00"); 
+  const [endTime, setEndTime] = useState("10:00"); 
   const [timezone, setTimezone] = useState("Asia/Jakarta");
-  const [attendees, setAttendees] = useState<string[]>([]); // Array of user IDs
+  const [attendees, setAttendees] = useState<string[]>([]); 
   const [location, setLocation] = useState("");
   const [linkMeeting, setLinkMeeting] = useState("");
   const [reminder, setReminder] = useState("15min");
@@ -89,28 +85,17 @@ export default function AddMeetingModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // --- Ambil data Sales untuk 'Attendees' ---
+  // --- Ambil data Sales ---
   const { data: salesTeam, error: teamError } = useSWR<TeamMember[]>(
     `${API_URL}/sales`,
     fetcher
   );
 
-  // Opsi untuk MultiSelect
   const salesOptions =
     salesTeam?.map((member) => ({
       value: member.id,
       label: member.name,
     })) || [];
-
-  // Opsi untuk Waktu (Select)
-  const timeOptions = Array.from({ length: 24 }, (_, i) => {
-    const hour = i;
-    const displayHour = i === 0 ? 12 : i > 12 ? i - 12 : i;
-    const suffix = i < 12 ? "AM" : "PM";
-    const value = `${hour.toString().padStart(2, "0")}:00`;
-    const label = `${displayHour}:00 ${suffix}`;
-    return { value, label };
-  });
 
   // Ambil data jika mode edit
   useEffect(() => {
@@ -123,11 +108,19 @@ export default function AddMeetingModal({
           )) as LeadActivity;
 
           const meta = data.meta || {};
-          setTitle(data.content);
+          
+          // --- FIX 1: Ambil Title dari schema baru ---
+          setTitle(data.title || data.content || "");
+          
           setDescription(meta.description || "");
-          setDate(formatToDateInput(meta.startTime));
-          setStartTime(formatToTimeInput(meta.startTime));
+          
+          // Fallback waktu: scheduledAt (baru) atau meta.startTime (lama)
+          const timeSource = data.scheduledAt || meta.startTime;
+          
+          setDate(formatToDateInput(timeSource));
+          setStartTime(formatToTimeInput(timeSource));
           setEndTime(formatToTimeInput(meta.endTime));
+          
           setTimezone(meta.timezone || "Asia/Jakarta");
           setAttendees(meta.attendees || []);
           setLocation(meta.location || "");
@@ -144,7 +137,7 @@ export default function AddMeetingModal({
         // Reset form jika mode create
         setTitle("");
         setDescription("");
-        setDate(new Date().toISOString().split("T")[0]); // Default hari ini
+        setDate(new Date().toISOString().split("T")[0]); 
         setStartTime("09:00");
         setEndTime("10:00");
         setTimezone("Asia/Jakarta");
@@ -165,16 +158,28 @@ export default function AddMeetingModal({
     setError("");
 
     const token = localStorage.getItem("token");
+    
+    // Kalkulasi Waktu
+    const finalStartTime = combineDateTime(date, startTime);
+    const finalEndTime = combineDateTime(date, endTime);
 
     // Siapkan body untuk API
     const body = {
       type: ActivityType.MEETING,
-      content: title, // Title disimpan di 'content'
+      
+      // --- FIX 2: Payload Schema Baru ---
+      title: title,         // Masuk ke kolom 'title'
+      description: description, // Masuk ke kolom 'description'
+      scheduledAt: finalStartTime, // Masuk ke kolom 'scheduledAt' (PENTING BUAT KALENDER)
+      location: location,   // Masuk ke kolom 'location'
+      
+      // Legacy Fallback
+      content: title, 
+
       meta: {
-        // Sisanya disimpan di 'meta'
         description,
-        startTime: combineDateTime(date, startTime), // Gabungkan
-        endTime: combineDateTime(date, endTime), // Gabungkan
+        startTime: finalStartTime,
+        endTime: finalEndTime,
         timezone,
         attendees,
         location,
@@ -185,8 +190,8 @@ export default function AddMeetingModal({
     };
 
     const url = isEditMode
-      ? `${API_URL}/leads/${leadId}/meetings/${meetingId}` // URL Update (PATCH)
-      : `${API_URL}/leads/${leadId}/activities`; // URL Create (POST)
+      ? `${API_URL}/leads/${leadId}/meetings/${meetingId}`
+      : `${API_URL}/leads/${leadId}/activities`;
 
     const method = isEditMode ? "PATCH" : "POST";
 
@@ -210,8 +215,8 @@ export default function AddMeetingModal({
           ? "Meeting successfully updated"
           : "Meeting successfully created"
       );
-      onMeetingAdded(); // Panggil mutate (refresh list)
-      onOpenChange(false); // Tutup modal
+      onMeetingAdded(); 
+      onOpenChange(false); 
     } catch (err) {
       setError(err instanceof Error ? err.message : "There is an error");
       toast.error(err instanceof Error ? err.message : "There is an error");
