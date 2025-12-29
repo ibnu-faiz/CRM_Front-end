@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react"; // Pastikan useEffect ada
+import { useSearchParams } from "next/navigation"; // <--- 1. TAMBAHAN PENTING
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -61,11 +62,29 @@ const tabs = [
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export default function LeadActivities({ leadId }: LeadActivitiesProps) {
+  // --- 2. LOGIKA BACA URL ---
+  const searchParams = useSearchParams();
+  const tabFromUrl = searchParams.get("tab"); // Ambil ?tab=... dari URL
+
+  // Default ke 'timeline' jika URL kosong
   const [activeTab, setActiveTab] = useState("timeline");
+
+  // Efek Otomatis Ganti Tab saat URL Berubah
+  useEffect(() => {
+    if (tabFromUrl) {
+      // Validasi: Pastikan tab yang diminta ada di daftar tabs kita
+      const isValidTab = tabs.some((t) => t.id === tabFromUrl);
+      if (isValidTab) {
+        setActiveTab(tabFromUrl);
+      }
+    }
+  }, [tabFromUrl]); // Jalankan setiap kali URL berubah
+  // ---------------------------
+
   const [searchQuery, setSearchQuery] = useState("");
-  const [dateFilter, setDateFilter] = useState("all"); // all, 7days, 30days
-  const [selectedTypes, setSelectedTypes] = useState<string[]>([]); // Untuk Timeline
-  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]); // Untuk Invoice
+  const [dateFilter, setDateFilter] = useState("all");
+  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
 
   // Modal states
   const [isAddNotesOpen, setIsAddNotesOpen] = useState(false);
@@ -181,11 +200,10 @@ export default function LeadActivities({ leadId }: LeadActivitiesProps) {
     setIsPreviewOpen(true);
   };
 
-  // --- Handlers Delete (LOGIKA DIKEMBALIKAN) ---
+  // --- Handlers Delete ---
 
   const handleDeleteNote = async (noteId: string) => {
     if (!window.confirm("Are you sure you want to delete this note?")) return;
-    // Optimistic update
     mutateNotes(
       notes?.filter((n) => n.id !== noteId),
       false
@@ -316,9 +334,7 @@ export default function LeadActivities({ leadId }: LeadActivitiesProps) {
     }
   };
 
-  // --- Handler Update Call (Dropdown) ---
   const handleUpdateCall = async (callId: string, updateData: any) => {
-    // 1. CEK DULU: Pastikan data 'calls' sudah ada sebelum diproses
     if (!calls) return;
 
     const call = calls.find((c) => c.id === callId);
@@ -326,7 +342,6 @@ export default function LeadActivities({ leadId }: LeadActivitiesProps) {
 
     const newMeta = { ...call.meta, ...updateData };
 
-    // Optimistic Update
     mutateCalls(
       calls.map((c) => (c.id === callId ? { ...c, meta: newMeta } : c)),
       false
@@ -363,17 +378,14 @@ export default function LeadActivities({ leadId }: LeadActivitiesProps) {
     invoiceId: string,
     newStatus: string
   ) => {
-    // 1. Cari data invoice lama di memori
     const targetInvoice = invoices?.find((inv) => inv.id === invoiceId);
     if (!targetInvoice) return;
 
-    // 2. Ambil seluruh data meta lama
     const oldMeta = targetInvoice.meta || {};
 
-    // 3. Gabungkan data lama dengan status baru agar data lain TIDAK HILANG
     const fullPayload = {
-      ...oldMeta, // Copy semua item, harga, tanggal, dll
-      status: newStatus, // Timpa statusnya saja
+      ...oldMeta,
+      status: newStatus,
     };
 
     try {
@@ -386,7 +398,7 @@ export default function LeadActivities({ leadId }: LeadActivitiesProps) {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify(fullPayload), // Kirim PAKET LENGKAP
+          body: JSON.stringify(fullPayload),
         }
       );
 
@@ -398,7 +410,7 @@ export default function LeadActivities({ leadId }: LeadActivitiesProps) {
     } catch (error) {
       console.error(error);
       toast.error("Failed to update status");
-      mutateInvoices(); 
+      mutateInvoices();
       mutateActivities();
     }
   };
@@ -416,13 +428,11 @@ export default function LeadActivities({ leadId }: LeadActivitiesProps) {
     );
   };
 
-  // --- 2. FUNGSI FILTER PINTAR ---
   const getFilteredData = (data: LeadActivity[] | undefined) => {
     if (!data) return [];
 
     let filtered = [...data];
 
-    // 1. Search Query
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter((item) => {
@@ -440,10 +450,8 @@ export default function LeadActivities({ leadId }: LeadActivitiesProps) {
       });
     }
 
-    // 2. Date Filter (SMART PRESETS)
     if (dateFilter !== "all") {
       const now = new Date();
-      // Set jam ke 00:00:00 agar perbandingan tanggal akurat
       now.setHours(0, 0, 0, 0);
 
       filtered = filtered.filter((item) => {
@@ -483,12 +491,10 @@ export default function LeadActivities({ leadId }: LeadActivitiesProps) {
       });
     }
 
-    // 3. Type Filter (Timeline)
     if (activeTab === "timeline" && selectedTypes.length > 0) {
       filtered = filtered.filter((item) => selectedTypes.includes(item.type));
     }
 
-    // 4. Status Filter (Invoice)
     if (activeTab === "invoice" && selectedStatuses.length > 0) {
       filtered = filtered.filter((item) => {
         const status = (item.meta?.status || "draft").toLowerCase();
@@ -499,7 +505,6 @@ export default function LeadActivities({ leadId }: LeadActivitiesProps) {
     return filtered;
   };
 
-  // --- 3. PLACEHOLDER DINAMIS ---
   const getSearchPlaceholder = () => {
     switch (activeTab) {
       case "invoice":
@@ -613,10 +618,10 @@ export default function LeadActivities({ leadId }: LeadActivitiesProps) {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <Input
             type="search"
-            placeholder={getSearchPlaceholder()} // <-- Placeholder berubah sesuai tab
+            placeholder={getSearchPlaceholder()}
             className="pl-10 h-9 bg-gray-50 border-gray-200 rounded-full text-sm"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)} // <-- Update state
+            onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
       </div>
@@ -633,8 +638,8 @@ export default function LeadActivities({ leadId }: LeadActivitiesProps) {
               onClick={() => {
                 setActiveTab(tab.id);
                 setSearchQuery("");
-                setSelectedTypes([]);    // Reset Filter Tipe
-                setSelectedStatuses([]); // Reset Filter Status
+                setSelectedTypes([]);
+                setSelectedStatuses([]);
                 setDateFilter("all");
               }}
               className={`
@@ -646,10 +651,8 @@ export default function LeadActivities({ leadId }: LeadActivitiesProps) {
           }
         `}
             >
-              {/* Label */}
               {tab.label}
 
-              {/* Badge Count */}
               {count !== null && count > 0 && (
                 <Badge
                   variant="secondary"
@@ -689,7 +692,6 @@ export default function LeadActivities({ leadId }: LeadActivitiesProps) {
                   variant="secondary"
                   className="h-5 px-1.5 rounded-full ml-1 text-[10px] font-semibold bg-gray-200 text-gray-500"
                 >
-                  {/* Hitung total filter aktif */}
                   {(dateFilter !== "all" ? 1 : 0) +
                     selectedTypes.length +
                     selectedStatuses.length}
@@ -699,7 +701,6 @@ export default function LeadActivities({ leadId }: LeadActivitiesProps) {
           </PopoverTrigger>
           <PopoverContent align="start" className="w-64 p-4">
             <div className="space-y-4">
-              {/* 1. Date Filter (Smart Presets) */}
               <div className="space-y-2">
                 <h4 className="font-medium text-sm">Time Range</h4>
                 <Select value={dateFilter} onValueChange={setDateFilter}>
@@ -718,7 +719,6 @@ export default function LeadActivities({ leadId }: LeadActivitiesProps) {
                 </Select>
               </div>
 
-              {/* 2. Status Filter (Khusus Invoice) */}
               {activeTab === "invoice" && (
                 <>
                   <Separator />
@@ -750,7 +750,6 @@ export default function LeadActivities({ leadId }: LeadActivitiesProps) {
                 </>
               )}
 
-              {/* 3. Type Filter (Khusus Timeline) */}
               {activeTab === "timeline" && (
                 <>
                   <Separator />
@@ -859,7 +858,7 @@ export default function LeadActivities({ leadId }: LeadActivitiesProps) {
         open={isAddNotesOpen}
         onOpenChange={(open) => {
           setIsAddNotesOpen(open);
-          if (!open) setSelectedNoteId(null); // Reset ID saat tutup
+          if (!open) setSelectedNoteId(null);
         }}
         leadId={leadId}
         noteId={selectedNoteId}
@@ -870,7 +869,7 @@ export default function LeadActivities({ leadId }: LeadActivitiesProps) {
         open={isAddMeetingOpen}
         onOpenChange={(open) => {
           setIsAddMeetingOpen(open);
-          if (!open) setSelectedMeetingId(null); // Reset ID saat tutup
+          if (!open) setSelectedMeetingId(null);
         }}
         leadId={leadId}
         meetingId={selectedMeetingId}
@@ -881,7 +880,7 @@ export default function LeadActivities({ leadId }: LeadActivitiesProps) {
         open={isAddCallOpen}
         onOpenChange={(open) => {
           setIsAddCallOpen(open);
-          if (!open) setSelectedCallId(null); // Reset ID saat tutup
+          if (!open) setSelectedCallId(null);
         }}
         leadId={leadId}
         callId={selectedCallId}
@@ -892,7 +891,7 @@ export default function LeadActivities({ leadId }: LeadActivitiesProps) {
         open={isAddEmailOpen}
         onOpenChange={(open) => {
           setIsAddEmailOpen(open);
-          if (!open) setSelectedEmailId(null); // Reset ID saat tutup
+          if (!open) setSelectedEmailId(null);
         }}
         leadId={leadId}
         emailId={selectedEmailId}
@@ -903,7 +902,7 @@ export default function LeadActivities({ leadId }: LeadActivitiesProps) {
         open={isAddInvoiceOpen}
         onOpenChange={(open) => {
           setIsAddInvoiceOpen(open);
-          if (!open) setSelectedInvoiceId(null); // Reset ID saat tutup
+          if (!open) setSelectedInvoiceId(null);
         }}
         leadId={leadId}
         invoiceId={selectedInvoiceId}
@@ -922,18 +921,16 @@ export default function LeadActivities({ leadId }: LeadActivitiesProps) {
         onEditInvoice={handleEditInvoice}
       />
 
-      <AddActivityTimelineModal 
-        open={isAddActivityOpen} 
-        onOpenChange={setIsAddActivityOpen} 
-        
-        // Kita sambungkan tombol di modal tadi ke fungsi pembuka modal yg asli
+      <AddActivityTimelineModal
+        open={isAddActivityOpen}
+        onOpenChange={setIsAddActivityOpen}
         onOpenNote={() => setIsAddNotesOpen(true)}
         onOpenMeeting={() => setIsAddMeetingOpen(true)}
         onOpenCall={() => setIsAddCallOpen(true)}
         onOpenEmail={() => setIsAddEmailOpen(true)}
         onOpenInvoice={() => {
-            setSelectedInvoiceId(null); // Reset ID biar jadi mode Create
-            setIsAddInvoiceOpen(true);
+          setSelectedInvoiceId(null);
+          setIsAddInvoiceOpen(true);
         }}
       />
     </Card>

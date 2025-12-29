@@ -103,7 +103,7 @@ export default function LeadListItem({ lead, onArchive }: LeadListItemProps) {
       draggable
       onDragStart={handleDragStart}
       onClick={handleClick}
-      className={`grid grid-cols-12 gap-6 px-8 py-5 hover:bg-gradient-to-r hover:from-gray-50 hover:to-transparent transition-all cursor-pointer group relative border-b border-gray-100 last:border-b-0 ${
+      className={`grid grid-cols-12 gap-3 px-8 py-5 hover:bg-gradient-to-r hover:from-gray-50 hover:to-transparent transition-all cursor-pointer group relative border-b border-gray-100 last:border-b-0 ${
         lead.isArchived ? "opacity-60 grayscale bg-gray-50" : ""
       }`}
     >

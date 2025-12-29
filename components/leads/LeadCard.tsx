@@ -73,7 +73,8 @@ export default function LeadCard({ lead, onArchive }: LeadCardProps) {
           <Button
             onClick={handleArchiveClick}
             variant="outline"
-            className={`p-2 rounded-full transition-colors ${
+            size="icon"
+            className={`h-7 w-7 rounded-full transition-all hover:scale-110 active:scale-95 ${
               lead.isArchived
                 ? "bg-blue-50 text-blue-600 hover:bg-blue-100" // Warna untuk Restore (Unarchive)
                 : "text-gray-400 hover:text-gray-900 hover:bg-gray-100" // Warna untuk Archive biasa
@@ -81,9 +82,9 @@ export default function LeadCard({ lead, onArchive }: LeadCardProps) {
             title={lead.isArchived ? "Unarchive" : "Archive"}
           >
             {lead.isArchived ? (
-              <ArchiveRestore className="w-4 h-4" />
+              <ArchiveRestore className="w-3.5 h-3.5" />
             ) : (
-              <Archive className="w-4 h-4" />
+              <Archive className="w-3.5 h-3.5" />
             )}
           </Button>
         )}

@@ -53,8 +53,6 @@ const formatdDueDateInvoice = (dateStr: string | Date) => {
   });
 };
 
-
-
 const formatMeetingDate = (startStr: string, endStr?: string) => {
   if (!startStr) return "-";
   const start = new Date(startStr);
@@ -96,6 +94,7 @@ export default function ActivityTimelineView({
   error,
   teamMembers = [],
 }: ActivityTimelineViewProps) {
+  
   // --- HELPER UNTUK MENDAPATKAN DETAIL USER ---
   const getAttendeeDetails = (attendeesInput: any) => {
     if (!attendeesInput) return [];
@@ -189,7 +188,6 @@ export default function ActivityTimelineView({
                         >
                           <AvatarImage src={user.avatar || undefined} />
                           <AvatarFallback className="text-[9px] bg-gray-900 text-white font-medium">
-                            {/* Tampilkan '?' jika user tidak ditemukan (isUnknown), atau jika nama terlihat seperti angka/ID */}
                             {user.isUnknown
                               ? "?"
                               : user.name
@@ -272,7 +270,6 @@ export default function ActivityTimelineView({
       case ActivityType.EMAIL:
         const isEmailSent = (meta.status || "").toUpperCase() === "SENT";
 
-        // Fungsi kecil untuk mengubah "SENT" menjadi "Sent", atau "draft" menjadi "Draft"
         const formatStatus = (status: string | null | undefined) => {
           if (!status) return "Draft";
           return status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
@@ -287,7 +284,6 @@ export default function ActivityTimelineView({
                   {activity.createdBy?.name || "System"}
                 </span>
               </div>
-              {/* Teks status sudah diformat */}
               <Badge
                 variant={isEmailSent ? "secondary" : "secondary"}
                 className="text-[10px] h-5 border-gray-300"
@@ -304,7 +300,7 @@ export default function ActivityTimelineView({
             </div>
 
             {meta.messageBody && (
-              <div className="text-gray-600 mt-1 border-t border-gray-200 pt-2 font-medium">
+              <div className="text-gray-600 mt-1 border-t border-gray-200 pt-2 font-medium line-clamp-3">
                 {meta.messageBody}
               </div>
             )}
@@ -318,7 +314,8 @@ export default function ActivityTimelineView({
               <div className="flex items-center gap-2">
                 <ReceiptText className="w-4 h-4 text-gray-500" />
                 <span className="font-bold text-gray-900">
-                  {activity.content}
+                  {/* --- PERBAIKAN DISINI --- */}
+                  {activity.title || activity.content}
                 </span>
               </div>
               <span className="text-gray-500 text-xs mt-1">
@@ -346,11 +343,13 @@ export default function ActivityTimelineView({
       case ActivityType.NOTE:
         return (
           <div className="mt-2 text-sm text-gray-800 bg-yellow-50 p-3 rounded-md border border-yellow-100 leading-relaxed whitespace-pre-wrap">
-            {activity.content}
+            {/* --- PERBAIKAN DISINI (Ambil description) --- */}
+            {activity.description || activity.content}
           </div>
         );
 
       default:
+        // Default untuk status change atau lainnya
         return meta.description ? (
           <p className="text-sm text-gray-600 mt-1">{meta.description}</p>
         ) : null;
@@ -362,6 +361,12 @@ export default function ActivityTimelineView({
       {activities.map((activity, index) => {
         const Icon = activityIconMap[activity.type] || Activity;
         const isLast = index === activities.length - 1;
+
+        // --- TENTUKAN JUDUL (Title atau Fallback) ---
+        let displayTitle = activity.title || activity.content || "Activity Log";
+        
+        if (activity.type === ActivityType.NOTE) displayTitle = "Note Added";
+        if (activity.type === ActivityType.INVOICE) displayTitle = "Invoice Created";
 
         return (
           <div key={activity.id} className="relative flex gap-4">
@@ -382,11 +387,8 @@ export default function ActivityTimelineView({
                 <div className="flex justify-between items-start mb-2">
                   <div>
                     <h4 className="font-semibold text-gray-900">
-                      {activity.type === ActivityType.NOTE
-                        ? "Note Added"
-                        : activity.type === ActivityType.INVOICE
-                        ? "Invoice Created"
-                        : activity.content || "Activity Log"}
+                      {/* --- TAMPILKAN JUDUL YANG SUDAH DITENTUKAN DI ATAS --- */}
+                      {displayTitle}
                     </h4>
                     <p className="text-xs text-gray-400 mt-0.5">
                       {formatDate(activity.createdAt)}

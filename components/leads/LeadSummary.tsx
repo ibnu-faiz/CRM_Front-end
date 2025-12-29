@@ -46,7 +46,7 @@ export default function LeadSummary({ lead, onEdit }: LeadSummaryProps) {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* Summary Card */}
       <Card>
         <CardHeader>

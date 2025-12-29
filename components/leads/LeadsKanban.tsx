@@ -83,17 +83,17 @@ export default function LeadsKanban({
     const allLeads = Object.values(grouped).flat();
     
     return (
-      <div className="px-6 pb-20">
+      <div className="px-1 pb-20">
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
           {/* Table Header */}
           <div className="bg-gradient-to-r from-gray-50 to-gray-100/50 border-b border-gray-200 px-8 py-4">
-            <div className="grid grid-cols-12 gap-6 text-xs font-bold text-gray-600 uppercase tracking-wider">
+            <div className="grid grid-cols-12 gap-3 text-xs font-bold text-gray-600 uppercase tracking-wider">
               <div className="col-span-3">Lead Details</div>
               <div className="col-span-2">Status</div>
               <div className="col-span-2">Value</div>
               <div className="col-span-2">Priority & Label</div>
               <div className="col-span-2">Due Date & Team</div>
-              <div className="col-span-1 text-right">Action</div>
+              <div className="col-span-1 text-right"></div>
             </div>
           </div>
 
@@ -126,7 +126,7 @@ export default function LeadsKanban({
 
   // GRID VIEW (KANBAN) - DEFAULT
   return (
-    <div className="flex gap-6 pb-20 min-w-max px-1 items-stretch">
+    <div className="flex gap-3 pb-20 min-w-max px-1 items-stretch">
       {stageConfig.map((stage) => {
         const stageLeads = grouped[stage.id] || [];
         const stageStat = stats.find(s => s.status === stage.id);
