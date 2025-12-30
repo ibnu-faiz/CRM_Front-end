@@ -11,12 +11,12 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
-import { Loader2 } from 'lucide-react';
+import { Loader2, FolderOpen } from 'lucide-react'; // Tambah icon FolderOpen
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 interface ChartData {
-  name: string; // Jan, Feb, dst
+  name: string;
   total: number;
 }
 
@@ -28,6 +28,8 @@ export default function LeadsChart() {
     const fetchData = async () => {
       try {
         const token = localStorage.getItem('token');
+        if (!token) return;
+
         const res = await fetch(`${API_URL}/dashboard/leads-chart`, {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -46,25 +48,37 @@ export default function LeadsChart() {
     fetchData();
   }, []);
 
+  // --- LOGIKA CEK KOSONG ---
+  // Cek apakah semua bulannya nol? (Total semua leads = 0)
+  const isDataEmpty = !loading && data.every(item => item.total === 0);
+
   return (
-    // HAPUS className="col-span-2". Biarkan parent grid yang mengatur lebarnya.
     <Card className="bg-white hover:shadow-md transition-shadow">
-      <CardHeader className="pb-2">
+      <CardHeader className="pb-4 text-center">
         <CardTitle className="text-lg font-bold text-gray-800">Total Leads by Months</CardTitle>
         <p className="text-sm text-gray-500">Performance for current year</p>
       </CardHeader>
       <CardContent>
-        {/* Loading State */}
         {loading ? (
           <div className="h-[350px] flex items-center justify-center text-gray-400">
             <Loader2 className="w-6 h-6 animate-spin mr-2" />
             Loading chart...
           </div>
+        ) : isDataEmpty ? (
+          // --- TAMPILAN KOSONG (EMPTY STATE) ---
+          <div className="h-[350px] flex flex-col items-center justify-center text-gray-400 border-2 border-dashed border-gray-100 rounded-lg bg-gray-50/50">
+            <FolderOpen className="w-12 h-12 mb-3 opacity-20" />
+            <p className="font-medium text-gray-500">No data available yet</p>
+            <p className="text-xs text-gray-400 mt-1">Start adding leads to see the chart</p>
+          </div>
         ) : (
-          // Container Chart: Tingginya di-set fix 350px
+          // --- TAMPILAN CHART (NORMAL) ---
           <div className="h-[350px] w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={data}>
+              <BarChart
+                data={data}
+                margin={{ top: 10, right: 0, left: -20, bottom: 0 }}
+              >
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
                 <XAxis
                   dataKey="name"
@@ -77,7 +91,7 @@ export default function LeadsChart() {
                   axisLine={false}
                   tickLine={false}
                   tick={{ fill: '#6B7280', fontSize: 12 }}
-                  allowDecimals={false} // Supaya sumbu Y tidak ada angka koma (misal: 1.5 lead)
+                  allowDecimals={false}
                 />
                 <Tooltip
                   cursor={{ fill: 'transparent' }}
@@ -88,12 +102,11 @@ export default function LeadsChart() {
                     boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
                   }}
                 />
-                {/* Warna Batang: Pakai Dark Gray/Black biar elegan (#111827) atau Gray user (#9ca3af) */}
                 <Bar 
                   dataKey="total" 
                   fill="#111827" 
-                  radius={[4, 4, 0, 0]} 
-                  barSize={40} // Lebar batang biar tidak terlalu kurus
+                  radius={[4, 4, 0, 0]} // Radius atas saja biar rapi
+                  barSize={40} 
                 />
               </BarChart>
             </ResponsiveContainer>
