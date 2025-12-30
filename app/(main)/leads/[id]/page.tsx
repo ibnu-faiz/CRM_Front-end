@@ -144,7 +144,7 @@ export default function LeadDetailPage({
       </div>
 
       {/* --- KOTAK HEADER BARU --- */}
-      <Card className="mb-6">
+      <Card className="mb-3">
         <CardContent className="p-6">
           {/* Baris Atas: Judul, Perusahaan, dan Tombol Aksi */}
           <div className="flex items-start justify-between mb-4">
@@ -252,7 +252,7 @@ export default function LeadDetailPage({
       </Card>
 
       {/* Main Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
         {/* Left Sidebar - Summary */}
         <div className="lg:col-span-1">
           <LeadSummary lead={lead} onEdit={() => setIsEditSummaryOpen(true)} />
