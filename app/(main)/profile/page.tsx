@@ -91,7 +91,7 @@ export default function ProfilePage() {
         <p className="text-sm text-gray-500">Manage your account settings</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
         
         {/* --- LEFT COLUMN: SIDEBAR --- */}
         <div className="lg:col-span-4">
