@@ -103,7 +103,7 @@ export default function TeamPage() {
       </div>
 
       {/* Team Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-3">
         {filteredMembers?.map((member) => (
           <TeamCard 
             key={member.id} 

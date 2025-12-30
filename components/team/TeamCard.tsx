@@ -81,8 +81,8 @@ export default function TeamCard({ member, onTeamUpdated }: TeamCardProps) {
   return (
     <>
       <Card className="hover:shadow-md transition-shadow w-full max-w-[350px] mx-auto">
-        <CardContent className="p-6">
-          <div className="flex items-start justify-between mb-4">
+        <CardContent className="p-4">
+          <div className="flex items-start justify-between mb-8">
             <Badge className={statusColors[member.status]}>
               {statusLabels[member.status]}
             </Badge>
@@ -139,7 +139,7 @@ export default function TeamCard({ member, onTeamUpdated }: TeamCardProps) {
             <p className="text-sm text-gray-500">{member.role}</p>
           </div>
 
-          <div className="space-y-2 text-sm">
+          <div className="space-y-2 text-sm background-gray-50 p-3 rounded-md border border-gray-200">
             <div className="flex items-center gap-2 text-gray-600">
               <Mail className="w-4 h-4" />
               <span className="truncate">{member.email}</span>
