@@ -80,6 +80,7 @@ export default function Navbar({
 
   const handleLogoutConfirm = () => {
     localStorage.removeItem("token");
+    localStorage.removeItem("user");
     router.push("/login");
     setIsLogoutDialogOpen(false);
   };

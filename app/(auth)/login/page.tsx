@@ -20,14 +20,31 @@ export default function LoginPage() {
       setLoading(true);
       setError('');
       try {
-        // Panggil endpoint login yang baru
-        await authAPI.googleLogin(tokenResponse.access_token);
+        // 1. TANGKAP DATA BALIKAN DARI BACKEND
+        // Pastikan authAPI.googleLogin me-return response.data
+        const response = await authAPI.googleLogin(tokenResponse.access_token);
         
-        // Jika sukses (akun ada), masuk dashboard
+        // Debugging: Cek di Console browser apa isi response-nya
+        console.log("Google Login Success Data:", response);
+
+        // 2. SIMPAN TOKEN KE LOCALSTORAGE
+        if (response.token) {
+            localStorage.setItem('token', response.token);
+        }
+
+        // 3. WAJIB: SIMPAN DATA USER KE LOCALSTORAGE
+        // Asumsi backend mengirim object { user: { id, name, role... } }
+        if (response.user) {
+            localStorage.setItem('user', JSON.stringify(response.user));
+        } else {
+            // JAGA-JAGA: Jika backend ternyata tidak kirim object user, tapi data ada di dalam token
+            // Anda perlu install 'jwt-decode' dan decode tokennya di sini.
+            console.warn("⚠️ Backend tidak mengirim object 'user'. Cek console log.");
+        }
+        
         router.push('/dashboard');
       } catch (err: any) {
         console.error('Google Login Error:', err);
-        // Tampilkan pesan error dari backend (misal: "Account not found")
         setError(err.message || 'Failed to login with Google');
       } finally {
         setLoading(false);
