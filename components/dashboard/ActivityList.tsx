@@ -124,16 +124,21 @@ export default function ActivityList() {
   /// --- [LOGIKA FILTER "SATPAM"] ---
   // Filter dulu: Tampilkan HANYA jika Admin ATAU Lead-nya milik Sales ini
   const myActivities = activities.filter((act) => {
+    // 1. Cek User Login
     if (!currentUser) return false;
 
-    // Data role Mas adalah "SALES" (huruf besar), jadi kode ini sudah aman:
+    // 2. [PENTING] CEK STATUS LEAD (ARCHIVED / DRAFT)
+    // Ambil data lead yang menempel di aktivitas ini
+    const associatedLead = (act as any).lead;
+    
+    // Jika Lead-nya di-archive (isArchived = true), Sembunyikan aktivitasnya!
+    if (associatedLead?.isArchived) return false; 
+
+    // 3. LOGIKA ROLE (ADMIN vs SALES)
     if (currentUser.role?.toUpperCase() === "ADMIN") return true;
 
     if (currentUser.role?.toUpperCase() === "SALES") {
-        // Ambil data lead & assigned users
-        const assignedUsers = (act as any).lead?.assignedUsers || [];
-        
-        // Cek ID (User ID Mas ada di properti "id")
+        const assignedUsers = associatedLead?.assignedUsers || [];
         const isAssigned = assignedUsers.some((u: any) => String(u.id) === String(currentUser.id));
         const isCreator = (act.createdBy as any)?.id === currentUser.id;
 
@@ -142,7 +147,6 @@ export default function ActivityList() {
 
     return false;
   });
-
   // 1. FILTER UMUM (⚠️ Ubah 'activities' jadi 'myActivities')
   const filteredByType = myActivities.filter((act) => act.type === activeTab);
   // 2. FILTER TODAY
