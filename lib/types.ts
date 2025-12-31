@@ -85,17 +85,34 @@ export interface TeamMember {
 
 export type LeadActivity = {
   id: string;
-  type: ActivityType;
-  content: string;
-  meta: {
-    attachmentUrl?: string | null;
-    [key: string]: any; // Izinkan properti meta lainnya
-  };
-  createdAt: string;
-  createdById: string;
   leadId: string;
-  createdBy: UserSimple;
-};
+  createdById: string;
+  type: ActivityType;
+
+  // --- UPDATE BAGIAN INI ---
+  title: string;          // Field Baru (Wajib)
+  description?: string;   // Field Baru (Opsional)
+  
+  // Field Content kita buat opsional (?) untuk backward compatibility 
+  // jaga-jaga kalau ada data lama yang belum termigrasi
+  content?: string;       
+  
+  // Field Tambahan Baru
+  location?: string;
+  scheduledAt?: string;   // Biasanya dari API bentuknya string ISO
+  isCompleted?: boolean;
+
+  meta: any;              // Data JSON (Invoice items, Email details, dll)
+  
+  createdAt: string;
+  
+  // Relasi (Opsional tergantung include di backend)
+  createdBy?: {
+    id: string;
+    name: string;
+    avatar?: string;
+  };
+}
 
 // 3. Tipe Lead (BARU & PENTING)
 // Ini mencerminkan schema.prisma Anda yang baru
