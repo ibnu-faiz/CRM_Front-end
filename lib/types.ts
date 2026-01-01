@@ -133,8 +133,8 @@ export interface Lead {
   description: string | null;
   createdAt: string;
   updatedAt: string;
-  wonAt: string | null;
-  lostAt: string | null;
+  wonAt?: string | null;
+  lostAt?: string | null;
   isArchived?: boolean;
   sourceOrigin?: string | null;
   sourceChannel?: string | null;
@@ -157,7 +157,7 @@ export interface CreateLeadData {
   currency?: string;
   status?: LeadStatus;
   priority?: LeadPriority;
-  label?: string;
+  clientType?: string;
   contacts?: string;
   isArchived?: boolean;
   dueDate?: string;
