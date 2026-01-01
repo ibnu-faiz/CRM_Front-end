@@ -3,7 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Edit, ChevronDown, ChevronUp, CalendarClock, User, Phone, Mail } from 'lucide-react';
+import { Edit, ChevronDown, ChevronUp, CalendarClock, CalendarPlus, User, Phone, Mail } from 'lucide-react';
 import { useState } from 'react';
 import { Lead } from '@/lib/types';
 
@@ -20,7 +20,7 @@ export default function LeadSummary({ lead, onEdit }: LeadSummaryProps) {
   const formatDate = (dateString: string | null) => {
     if (!dateString) return '-';
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
+    return date.toLocaleDateString('en-UK', { 
       day: 'numeric', 
       month: 'long', 
       year: 'numeric' 
@@ -98,9 +98,15 @@ export default function LeadSummary({ lead, onEdit }: LeadSummaryProps) {
             )}
           </div>
 
-          {/* Due Date */}
+          {/* Created At (Tanggal Dibuat) */}
+          <div className="flex items-center gap-2 text-gray-500">
+            <CalendarPlus className="w-4 h-4" />
+            <span>{formatDate(lead.createdAt)}</span>
+          </div>
+
+          {/* Due Date (Jatuh Tempo) */}
           {lead.dueDate && (
-            <div className="flex items-center gap-2 text-gray-500">
+            <div className="flex items-center gap-2 text-gray-500"> {/* Opsional: warna beda untuk due date */}
               <CalendarClock className="w-4 h-4" />
               <span>{formatDate(lead.dueDate)}</span>
             </div>
