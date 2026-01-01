@@ -8,7 +8,8 @@ import {
   CheckCircle2, 
   XCircle, 
   Globe, 
-  Database 
+  Database,
+  Archive
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Lead } from '@/lib/types'; 
@@ -178,7 +179,7 @@ export default function MetricsStrip({ leads = [] }: MetricsStripProps) {
                 IconComp = TrendingUp; // Progress naik
             } else {
                  colorClass = "text-gray-500";
-                 IconComp = Database; // Icon Database untuk total
+                 IconComp = Archive; // Icon Database untuk total
             }
 
             return (

@@ -131,8 +131,14 @@ export default function ActivityList() {
     // Ambil data lead yang menempel di aktivitas ini
     const associatedLead = (act as any).lead;
     
-    // Jika Lead-nya di-archive (isArchived = true), Sembunyikan aktivitasnya!
-    if (associatedLead?.isArchived) return false; 
+    if (associatedLead) {
+        // 1. Cek Archive
+        if (associatedLead.isArchived) return false;
+
+        // 2. Cek Status WON / LOST
+        const status = associatedLead.status; // Pastikan backend kirim field 'status'
+        if (status === "WON" || status === "LOST") return false;
+    }
 
     // 3. LOGIKA ROLE (ADMIN vs SALES)
     if (currentUser.role?.toUpperCase() === "ADMIN") return true;
