@@ -74,7 +74,7 @@ export default function CreateLeadModal({
     currency: "IDR",
     status: LeadStatus.LEAD_IN,
     priority: LeadPriority.MEDIUM,
-    label: "",
+    clientType: "",
     contacts: "",
     dueDate: "",
     description: "",
@@ -118,7 +118,7 @@ export default function CreateLeadModal({
         currency: "IDR",
         status: LeadStatus.LEAD_IN,
         priority: LeadPriority.MEDIUM,
-        label: "",
+        clientType: "",
         contacts: "",
         dueDate: "",
         description: "",
@@ -384,21 +384,20 @@ export default function CreateLeadModal({
           {/* Label & Due Date */}
           <div className="grid grid-cols-2 gap-4">
             <div className="grid gap-1.5">
-              <Label htmlFor="label">Label</Label>
-              <Select
-                value={formData.label || ""}
-                onValueChange={(value) => handleChange("label", value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select Label" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="cold">Cold</SelectItem>
-                  <SelectItem value="hot">Hot</SelectItem>
-                  <SelectItem value="pitching">Pitching</SelectItem>
-                  <SelectItem value="deal">Deal</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label htmlFor="clientType">Client Type</Label>
+          <Select
+            value={formData.clientType || ""} // Pastikan state formData punya properti clientType
+            onValueChange={(value) => handleChange("clientType", value)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select Client Type" />
+            </SelectTrigger>
+            <SelectContent>
+              {/* Value "new" dan "existing" disesuaikan dengan helper function Anda */}
+              <SelectItem value="new">New Client</SelectItem>
+              <SelectItem value="existing">Existing Client</SelectItem>
+            </SelectContent>
+          </Select>
             </div>
             <div className="grid gap-1.5">
               <Label htmlFor="dueDate">Due Date</Label>
