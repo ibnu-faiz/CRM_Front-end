@@ -1,6 +1,12 @@
 "use client";
 import { Lead, LeadPriority } from "@/lib/types";
-import { CalendarClock, CalendarCheck, CalendarX, Archive, ArchiveRestore } from "lucide-react"; // Import icon Archive
+import {
+  CalendarClock,
+  CalendarCheck,
+  CalendarX,
+  Archive,
+  ArchiveRestore,
+} from "lucide-react"; // Import icon Archive
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useRouter } from "next/navigation";
 import { Button } from "../ui/button";
@@ -19,32 +25,36 @@ const priorityColors = {
 };
 
 const getPriorityLabel = (type: string) => {
-  if (type === 'low') return 'Low Priority';
-  if (type === 'medium') return 'Medium Priority';
-  if (type === 'high') return 'High Priority';
+  if (type === "low") return "Low Priority";
+  if (type === "medium") return "Medium Priority";
+  if (type === "high") return "High Priority";
   return type;
-}
+};
 
 const clientTypeColors: Record<string, string> = {
-  new: "bg-blue-100 text-blue-700",       // Biru untuk New Client
+  new: "bg-blue-100 text-blue-700", // Biru untuk New Client
   existing: "bg-emerald-100 text-emerald-700", // Hijau/Emerald untuk Existing
 };
 
 const getClientTypeLabel = (type: string) => {
-  if (type === 'new') return 'New Client';
-  if (type === 'existing') return 'Existing Client';
+  if (type === "new") return "New Client";
+  if (type === "existing") return "Existing Client";
   return type;
 };
 
 const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("id-ID", {
-        day: "numeric",
-        month: "short",
-        year: "2-digit",
-    });
+  return new Date(dateString).toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "short",
+    year: "2-digit",
+  });
 };
 
-export default function LeadCard({ lead, onArchive, isDragDisabled }: LeadCardProps) {
+export default function LeadCard({
+  lead,
+  onArchive,
+  isDragDisabled,
+}: LeadCardProps) {
   const router = useRouter();
 
   const handleDragStart = (e: React.DragEvent) => {
@@ -146,35 +156,32 @@ export default function LeadCard({ lead, onArchive, isDragDisabled }: LeadCardPr
       <div className="flex items-center justify-between pt-3 border-t border-gray-100 mt-auto">
         {/* Bagian Kiri: Tanggal */}
         <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                   
-                   {/* LOGIC: Cek status terlebih dahulu */}
-                   {lead.status === "WON" ? (
-                      /* KONDISI 1: status WON (Hijau & Check) */
-                      <>
-                        <CalendarCheck className="w-3.5 h-3.5 text-emerald-600" />
-                        <span className="text-emerald-600 font-medium">
-                            {/* Tampilkan wonAt, fallback ke string kosong biar aman TS */}
-                            {formatDate(lead.wonAt || "")}
-                        </span>
-                      </>
-                   ) : lead.status === "LOST" ? (
-                      /* KONDISI 2: status LOST (Merah & Silang) */
-                      <>
-                        <CalendarX className="w-3.5 h-3.5 text-red-600" />
-                        <span className="text-red-600 font-medium">
-                            {formatDate(lead.lostAt || "")}
-                        </span>
-                      </>
-                   ) : (
-                      /* KONDISI 3: status OPEN / Lainnya (Abu-abu & Jam) */
-                      <>
-                        <CalendarClock className="w-3.5 h-3.5" />
-                        <span>
-                            {lead.dueDate ? formatDate(lead.dueDate) : "-"}
-                        </span>
-                      </>
-                   )}
-                </div>
+          {/* LOGIC: Cek status terlebih dahulu */}
+          {lead.status === "WON" ? (
+            /* KONDISI 1: status WON (Hijau & Check) */
+            <>
+              <CalendarCheck className="w-3.5 h-3.5 text-emerald-600" />
+              <span className="text-emerald-600 font-medium">
+                {/* Tampilkan wonAt, fallback ke string kosong biar aman TS */}
+                {formatDate(lead.wonAt || "")}
+              </span>
+            </>
+          ) : lead.status === "LOST" ? (
+            /* KONDISI 2: status LOST (Merah & Silang) */
+            <>
+              <CalendarX className="w-3.5 h-3.5 text-red-600" />
+              <span className="text-red-600 font-medium">
+                {formatDate(lead.lostAt || "")}
+              </span>
+            </>
+          ) : (
+            /* KONDISI 3: status OPEN / Lainnya (Abu-abu & Jam) */
+            <>
+              <CalendarClock className="w-3.5 h-3.5" />
+              <span>{lead.dueDate ? formatDate(lead.dueDate) : "-"}</span>
+            </>
+          )}
+        </div>
 
         {/* Bagian Kanan: Avatar */}
         <div className="flex -space-x-2 overflow-hidden pl-2">

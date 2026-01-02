@@ -12,6 +12,11 @@ import {
   ChevronRight,
   Sparkles,
   Loader2,
+  Calendar,
+  UserX,
+  Check,
+  ChevronDown,
+  X,
 } from "lucide-react";
 import LeadsKanban from "@/components/leads/LeadsKanban";
 import CreateLeadModal from "@/components/leads/CreateLeadModal";
@@ -28,10 +33,13 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
+import {
+  startOfMonth,
+  endOfMonth,
+  subMonths,
+  isWithinInterval,
+} from "date-fns";
 import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
 
 export default function LeadsPage() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
@@ -44,8 +52,6 @@ export default function LeadsPage() {
   const { grouped, stats, loading, createLead, updateLead, deleteLead } =
     useLeadsByStatus(showArchived);
 
-  const [selectedPriorities, setSelectedPriorities] = useState<string[]>([]);
-
   // State Dialogs
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isWonDialogOpen, setIsWonDialogOpen] = useState(false);
@@ -54,37 +60,96 @@ export default function LeadsPage() {
     id: string;
     title: string;
   } | null>(null);
-  
+
   // State Drag & Drop
   const [dragOverZone, setDragOverZone] = useState<string | null>(null);
-  const [isDragging, setIsDragging] = useState(false); 
+  const [isDragging, setIsDragging] = useState(false);
+
+  const [selectedTimeFilters, setSelectedTimeFilters] = useState<string[]>([]); // Array untuk multi-select
+  const [showUnassignedOnly, setShowUnassignedOnly] = useState(false);
+
+  const toggleTimeFilter = (value: string) => {
+    setSelectedTimeFilters(
+      (prev) =>
+        prev.includes(value)
+          ? prev.filter((item) => item !== value) // Hapus (Uncheck)
+          : [...prev, value] // Tambah (Check)
+    );
+  };
 
   const filteredGrouped: Record<string, Lead[]> = {};
 
   if (grouped) {
     Object.keys(grouped).forEach((key) => {
       const statusKey = key as LeadStatus;
+
       if (grouped[statusKey]) {
         filteredGrouped[key] = grouped[statusKey].filter((lead: Lead) => {
+          // 1. Filter Archive (Bawaan lama)
           const matchesArchive = showArchived
             ? lead.isArchived === true
             : !lead.isArchived;
-          const matchesPriority =
-            selectedPriorities.length === 0 ||
-            selectedPriorities.includes(lead.priority);
-          return matchesArchive && matchesPriority;
+
+          // 2. Filter Unassigned (Baru)
+          // Jika toggle aktif, hanya tampilkan yang assignedUsers kosong/null
+          const matchesUnassigned = showUnassignedOnly
+            ? !lead.assignedUsers || lead.assignedUsers.length === 0
+            : true;
+
+          // 3. Filter Waktu (Baru)
+          // Asumsi filter berdasarkan 'createdAt'. Ubah ke 'dueDate' jika perlu.
+          const leadDate = new Date(lead.createdAt); // Pastikan field ini benar (createdAt / dueDate)
+          const now = new Date();
+
+          let matchesTime = true;
+
+          if (selectedTimeFilters.length > 0) {
+            matchesTime = false; // Default false, akan jadi true jika cocok salah satu
+
+            // A. Cek THIS MONTH
+            if (selectedTimeFilters.includes("THIS_MONTH")) {
+              const isThisMonth = isWithinInterval(leadDate, {
+                start: startOfMonth(now),
+                end: endOfMonth(now),
+              });
+              if (isThisMonth) matchesTime = true;
+            }
+
+            // B. Cek LAST MONTH
+            if (selectedTimeFilters.includes("LAST_MONTH")) {
+              const lastMonth = subMonths(now, 1);
+              const isLastMonth = isWithinInterval(leadDate, {
+                start: startOfMonth(lastMonth),
+                end: endOfMonth(lastMonth),
+              });
+              if (isLastMonth) matchesTime = true;
+            }
+
+            // C. Cek 3RD MONTH (2 Bulan Lalu)
+            // Contoh: Sekarang Januari. Last=Des. 3rd=November.
+            if (selectedTimeFilters.includes("3RD_MONTH")) {
+              const thirdMonth = subMonths(now, 2);
+              const isThirdMonth = isWithinInterval(leadDate, {
+                start: startOfMonth(thirdMonth),
+                end: endOfMonth(thirdMonth),
+              });
+              if (isThirdMonth) matchesTime = true;
+            }
+          }
+
+          // Gabungkan semua kondisi
+          return matchesArchive && matchesUnassigned && matchesTime;
         });
       }
     });
   }
 
-  const togglePriority = (priority: string) => {
-    setSelectedPriorities((prev) =>
-      prev.includes(priority)
-        ? prev.filter((p) => p !== priority)
-        : [...prev, priority]
-    );
-  };
+  const allFilteredLeads = grouped ? Object.values(filteredGrouped).flat() : [];
+  const displayedTotalLeads = allFilteredLeads.length;
+  const displayedTotalValue = allFilteredLeads.reduce((sum, lead) => {
+    return sum + (Number(lead.value) || 0);
+  }, 0);
+  const hasActiveFilters = selectedTimeFilters.length > 0;
 
   const handleArchiveLead = async (id: string) => {
     try {
@@ -115,36 +180,36 @@ export default function LeadsPage() {
 
   const handleDrop = (e: React.DragEvent, zone: "delete" | "won" | "lost") => {
     e.preventDefault();
-    setIsDragging(false); 
+    setIsDragging(false);
     setDragOverZone(null);
 
     const leadId = e.dataTransfer.getData("leadId");
     const leadTitle = e.dataTransfer.getData("leadTitle");
-    
+
     if (leadId) {
-        setSelectedLead({ id: leadId, title: leadTitle });
-        if (zone === "delete") setIsDeleteDialogOpen(true);
-        else if (zone === "won") setIsWonDialogOpen(true);
-        else if (zone === "lost") setIsLostDialogOpen(true);
+      setSelectedLead({ id: leadId, title: leadTitle });
+      if (zone === "delete") setIsDeleteDialogOpen(true);
+      else if (zone === "won") setIsWonDialogOpen(true);
+      else if (zone === "lost") setIsLostDialogOpen(true);
     }
   };
 
   // --- Backend Actions ---
   const handleDeleteConfirm = async () => {
     if (selectedLead) {
-      await deleteLead(selectedLead.id); 
+      await deleteLead(selectedLead.id);
       setSelectedLead(null);
     }
   };
   const handleWonConfirm = async () => {
     if (selectedLead) {
-      await updateLead(selectedLead.id, { status: LeadStatus.WON }); 
+      await updateLead(selectedLead.id, { status: LeadStatus.WON });
       setSelectedLead(null);
     }
   };
   const handleLostConfirm = async () => {
     if (selectedLead) {
-      await updateLead(selectedLead.id, { status: LeadStatus.LOST }); 
+      await updateLead(selectedLead.id, { status: LeadStatus.LOST });
       setSelectedLead(null);
     }
   };
@@ -188,9 +253,6 @@ export default function LeadsPage() {
     localStorage.setItem("leadsViewMode", mode);
   };
 
-  const totalLeads = stats.reduce((sum, s) => sum + s.count, 0);
-  const totalValue = stats.reduce((sum, s) => sum + s.totalValue, 0);
-
   if (!isViewInitialized) {
     return (
       <div className="h-[calc(100vh-65px)] flex items-center justify-center bg-gray-50/30">
@@ -212,9 +274,15 @@ export default function LeadsPage() {
             <p className="text-sm text-gray-500">
               {loading
                 ? "Loading..."
-                : `${totalLeads} leads • IDR ${totalValue.toLocaleString(
+                : `${displayedTotalLeads} leads • IDR ${displayedTotalValue.toLocaleString(
                     "id-ID"
                   )}`}
+              {/* Opsional: Tambahkan indikator visual */}
+              {hasActiveFilters && (
+                <span className="ml-2 text-xs text-blue-600 font-medium">
+                  (Filtered)
+                </span>
+              )}
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -237,7 +305,7 @@ export default function LeadsPage() {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <div className="flex items-center bg-white border border-gray-200 rounded-full p-1 shadow-sm">
-             <button
+              <button
                 onClick={() => changeViewMode("grid")}
                 // UBAH rounded-md JADI rounded-full DI SINI
                 className={`p-2 rounded-full transition-all ${
@@ -262,9 +330,9 @@ export default function LeadsPage() {
               </button>
             </div>
 
-            <Button 
-              variant="outline" 
-              // size="sm" 
+            <Button
+              variant="outline"
+              // size="sm"
               onClick={() => setShowArchived(!showArchived)}
               className={`gap-2 ${
                 showArchived
@@ -276,81 +344,136 @@ export default function LeadsPage() {
               {showArchived ? "Show Active" : "Archive"}
             </Button>
 
+            {/* --- FILTER BUTTON (MULTI SELECT UI) --- */}
             <Popover>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
-                  // size="lg"
                   className={`gap-2 ${
-                    selectedPriorities.length > 0
+                    selectedTimeFilters.length > 0 || showUnassignedOnly
                       ? "bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 hover:text-blue-800"
                       : ""
                   }`}
                 >
                   <Filter className="w-4 h-4" />
-                  Filters
-                  {selectedPriorities.length > 0 && (
+                  <span>Filters</span>
+
+                  {/* Badge Counter */}
+                  {(selectedTimeFilters.length > 0 || showUnassignedOnly) && (
                     <>
-                      <Separator orientation="vertical" className="mx-1 h-4" />
-                      <Badge
-                        variant="secondary"
-                        className="rounded-sm px-1 font-normal lg:hidden"
-                      >
-                        {selectedPriorities.length}
-                      </Badge>
-                      <div className="hidden space-x-1 lg:flex">
-                        {selectedPriorities.length > 2 ? (
-                          <Badge
-                            variant="secondary"
-                            className="rounded-full px-1 font-normal"
-                          >
-                            {selectedPriorities.length} selected
-                          </Badge>
-                        ) : (
-                          selectedPriorities.map((option) => (
-                            <Badge
-                              variant="secondary"
-                              key={option}
-                              className="rounded-full px-1 font-normal capitalize"
-                            >
-                              {option.toLowerCase()}
-                            </Badge>
-                          ))
-                        )}
-                      </div>
+                      <Separator
+                        orientation="vertical"
+                        className="mx-1 h-4 bg-blue-200"
+                      />
+                      <span className="bg-blue-100 text-blue-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                        {selectedTimeFilters.length +
+                          (showUnassignedOnly ? 1 : 0)}
+                      </span>
                     </>
                   )}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[200px] p-0" align="start">
+
+              <PopoverContent className="w-[260px] p-0" align="end">
                 <div className="p-4 space-y-4">
-                  <div className="space-y-2">
+                  {/* HEADER */}
+                  <div className="flex items-center justify-between">
                     <h4 className="font-medium text-sm text-gray-900">
-                      Priority
+                      Filter Settings
                     </h4>
-                    <div className="grid gap-2">
+                    {(selectedTimeFilters.length > 0 || showUnassignedOnly) && (
+                      <button
+                        onClick={() => {
+                          setSelectedTimeFilters([]);
+                          setShowUnassignedOnly(false);
+                        }}
+                        type="button"
+                        className="px-2 py-1 text-[10px] font-medium rounded-full border border-red-200 text-red-700 bg-red-50 hover:bg-red-100 hover:border-red-300 hover:text-red-800 transition-all"
+                      >
+                        Reset All
+                      </button>
+                    )}
+                  </div>
+
+                  <Separator />
+
+                  {/* 1. SECTION: TIME PERIOD (CHECKBOXES) */}
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      View Leads By
+                    </label>
+                    <div className="grid gap-1">
                       {[
-                        LeadPriority.HIGH,
-                        LeadPriority.MEDIUM,
-                        LeadPriority.LOW,
-                      ].map((priority) => (
-                        <div
-                          key={priority}
-                          className="flex items-center space-x-2"
-                        >
-                          <Checkbox
-                            id={`filter-${priority}`}
-                            checked={selectedPriorities.includes(priority)}
-                            onCheckedChange={() => togglePriority(priority)}
-                          />
-                          <Label
-                            htmlFor={`filter-${priority}`}
-                            className="text-sm font-normal capitalize cursor-pointer"
+                        { value: "THIS_MONTH", label: "This Month" },
+                        { value: "LAST_MONTH", label: "Last Month" },
+                        { value: "3RD_MONTH", label: "2 Months Ago" },
+                      ].map((option) => {
+                        const isSelected = selectedTimeFilters.includes(
+                          option.value
+                        );
+                        return (
+                          <div
+                            key={option.value}
+                            onClick={() => toggleTimeFilter(option.value)}
+                            className={`flex items-center justify-between px-2 py-1.5 rounded-md cursor-pointer text-sm transition-colors ${
+                              isSelected
+                                ? "bg-blue-50 text-blue-700 font-medium"
+                                : "text-gray-700 hover:bg-gray-100"
+                            }`}
                           >
-                            {priority.toLowerCase()}
-                          </Label>
-                        </div>
-                      ))}
+                            <div className="flex items-center gap-2">
+                              {/* Custom Checkbox UI */}
+                              <div
+                                className={`w-4 h-4 rounded border flex items-center justify-center ${
+                                  isSelected
+                                    ? "bg-blue-600 border-blue-600 text-white"
+                                    : "border-gray-300 bg-white"
+                                }`}
+                              >
+                                {isSelected && <Check className="w-3 h-3" />}
+                              </div>
+                              <span>{option.label}</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {selectedTimeFilters.length === 0 && (
+                      <p className="text-[10px] text-gray-400 px-2 italic">
+                        *Showing all time history
+                      </p>
+                    )}
+                  </div>
+
+                  <Separator />
+
+                  {/* 2. SECTION: ASSIGNMENT */}
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      Assignment
+                    </label>
+                    <div
+                      onClick={() => setShowUnassignedOnly(!showUnassignedOnly)}
+                      className={`flex items-center justify-between px-2 py-1.5 rounded-md cursor-pointer text-sm transition-colors ${
+                        showUnassignedOnly
+                          ? "bg-orange-50 text-orange-700 font-medium"
+                          : "text-gray-700 hover:bg-gray-100"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <UserX className="w-3.5 h-3.5 opacity-70" />
+                        <span>Unassigned Only</span>
+                      </div>
+
+                      <div
+                        className={`w-4 h-4 rounded border flex items-center justify-center ${
+                          showUnassignedOnly
+                            ? "bg-orange-500 border-orange-500 text-white"
+                            : "border-gray-300 bg-white"
+                        }`}
+                      >
+                        {showUnassignedOnly && <Check className="w-3 h-3" />}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -401,6 +524,9 @@ export default function LeadsPage() {
       >
         <LeadsKanban
           grouped={filteredGrouped}
+          hasActiveFilters={
+            selectedTimeFilters.length > 0 || showUnassignedOnly
+          }
           stats={stats}
           loading={loading}
           onUpdateLead={updateLead}
@@ -411,7 +537,7 @@ export default function LeadsPage() {
 
       {/* POSISI TERPISAH: Di luar scroll container, tapi di dalam div utama (relative) 
           Agar 'absolute bottom-0' menempel di dasar layar */}
-      <LeadsDropZone 
+      <LeadsDropZone
         isDragging={isDragging}
         dragOverZone={dragOverZone}
         onDragOver={handleDragOver}
