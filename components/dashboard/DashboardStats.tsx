@@ -108,21 +108,21 @@ export default function DashboardStats() {
       {/* SECTION 1: MAIN STATS (Kartu Besar) */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <StatsCard
-          title="Total Pipeline Value"
+          title="Total Opportunity Value"
           value={formatRupiah(data?.pipelineValue.value || 0)}
           change={`${data?.pipelineValue.change}%`}
           isPositive={data?.pipelineValue.isPositive || false}
           icon={<Wallet className="w-4 h-4" />}
         />
         <StatsCard
-          title="Active Deals"
+          title="Total Opportunities"
           value={data?.activeDeals.value.toString() || "0"}
           change={`${data?.activeDeals.change}%`}
           isPositive={data?.activeDeals.isPositive || false}
           icon={<CreditCard className="w-4 h-4" />}
         />
         <StatsCard
-          title="Average Deals"
+          title="Avg. Deal Size"
           value={formatRupiah(data?.avgDeal.value || 0)}
           change={`${data?.avgDeal.change}%`}
           isPositive={data?.avgDeal.isPositive || false}

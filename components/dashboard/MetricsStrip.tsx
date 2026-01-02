@@ -7,9 +7,10 @@ import {
   Minus, 
   CheckCircle2, 
   XCircle, 
-  Globe, 
+  Globe,
   Database,
-  Archive
+  ClipboardClock,
+  ClipboardCheck
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Lead } from '@/lib/types'; 
@@ -34,7 +35,7 @@ export default function MetricsStrip({ leads = [] }: MetricsStripProps) {
     }
   }, []);
 
-  // --- 2. LOGIKA HITUNG (SESUAI REQUEST TERAKHIR) ---
+  // --- 2. LOGIKA HITUNG (REVISI FINAL: CONVERSION RATE BASE) ---
   const stats = useMemo(() => {
     
     // Safety Check
@@ -42,16 +43,16 @@ export default function MetricsStrip({ leads = [] }: MetricsStripProps) {
         return { 
           visibleWon: 0, 
           visibleLost: 0, 
-          activeLeadsCount: 0, 
+          openDealsCount: 0, 
           grandTotal: 0,
           winRate: 0, 
           lostRate: 0, 
-          inProgressRatio: 0, 
-          archiveRatio: 0
+          openRate: 0, 
+          completionRate: 0
         };
     }
 
-    // A. FILTER ROLE (Langkah Pertama: Ambil jatah data user)
+    // A. FILTER ROLE (Ambil data milik user ini saja)
     const myAllLeads = leads.filter((lead) => {
         if (currentUser.role === "ADMIN") return true;
         if (currentUser.role === "SALES") {
@@ -61,62 +62,54 @@ export default function MetricsStrip({ leads = [] }: MetricsStripProps) {
         return false;
     });
 
-    // --- HITUNG VALUE UTAMA ---
+    // --- HITUNG VALUE ---
 
-    // 1. TOTAL LEADS (Kartu 4): Semua data (Archive + Non-Archive)
+    // 1. GRAND TOTAL
     const grandTotal = myAllLeads.length;
 
-    // 2. ACTIVE LEADS (Kartu 3): Semua data KECUALI Archive
-    // (Termasuk Won/Lost yang belum di-archive)
+    // Filter leads yang aktif (tidak di-archive) untuk tampilan dashboard
     const visibleLeads = myAllLeads.filter(l => !l.isArchived);
-    const activeLeadsCount = visibleLeads.length;
 
-    // 3. TOTAL WON (Kartu 1): Status WON & TIDAK Archive
+    // 2. STATUS COUNTS
     const visibleWon = visibleLeads.filter(l => l.status === "WON").length;
-
-    // 4. TOTAL LOST (Kartu 2): Status LOST & TIDAK Archive
     const visibleLost = visibleLeads.filter(l => l.status === "LOST").length;
+    // Open Deals = Bukan Won & Bukan Lost
+    const openDealsCount = visibleLeads.filter(l => l.status !== 'WON' && l.status !== 'LOST').length;
 
+    const totalFinished = visibleWon + visibleLost; // Total yang sudah kelar
 
-    // --- HITUNG PERSENTASE (INDIKATOR) ---
+    // --- HITUNG PERSENTASE (DENOMINATOR: GRAND TOTAL) ---
+    // Agar totalnya menjadi 100% (Won% + Lost% + Open% = 100%)
 
-    // A. Win Rate & Loss Rate (Dari data yang TAMPIL saja)
-    // Rumus: Won / (Won + Lost) -> Hanya menghitung deal yang selesai dan belum di-archive
-    const visibleFinished = visibleWon + visibleLost; 
-
-    const winRate = visibleFinished > 0 
-      ? Math.round((visibleWon / visibleFinished) * 100) 
+    // A. Win Rate (Conversion Rate)
+    const winRate = grandTotal > 0 
+      ? Math.round((visibleWon / grandTotal) * 100) 
       : 0;
 
-    const lostRate = visibleFinished > 0 
-      ? Math.round((visibleLost / visibleFinished) * 100) 
+    // B. Loss Rate
+    const lostRate = grandTotal > 0 
+      ? Math.round((visibleLost / grandTotal) * 100) 
       : 0;
 
-    // B. In Progress Ratio (Untuk Active Leads)
-    // Berapa persen dari "Active Leads" yang statusnya masih jalan (Bukan Won/Lost)?
-    const inProgressCount = visibleLeads.filter(l => l.status !== 'WON' && l.status !== 'LOST').length;
-    
-    const inProgressRatio = activeLeadsCount > 0 
-      ? Math.round((inProgressCount / activeLeadsCount) * 100) 
+    // C. Open Rate (Sisa Pekerjaan)
+    const openRate = grandTotal > 0 
+      ? Math.round((openDealsCount / grandTotal) * 100) 
       : 0;
 
-    // C. Archive Ratio (Untuk Total Leads)
-    // Berapa persen dari "Total Leads" yang statusnya Archive?
-    const archiveCount = myAllLeads.filter(l => l.isArchived).length;
-    
-    const archiveRatio = grandTotal > 0
-      ? Math.round((archiveCount / grandTotal) * 100)
+    // D. Completion Rate (Seberapa banyak yang sudah diproses)
+    const completionRate = grandTotal > 0
+      ? Math.round((totalFinished / grandTotal) * 100)
       : 0;
 
     return { 
       visibleWon, 
       visibleLost, 
-      activeLeadsCount, 
+      openDealsCount, 
       grandTotal,
       winRate, 
       lostRate, 
-      inProgressRatio, 
-      archiveRatio
+      openRate, 
+      completionRate
     };
 
   }, [leads, currentUser]);
@@ -127,7 +120,8 @@ export default function MetricsStrip({ leads = [] }: MetricsStripProps) {
       label: 'Total Won',
       icon: <CheckCircle2 className="w-4 h-4" />,
       value: stats.visibleWon,
-      change: `${stats.winRate}%`, // Win Rate (dari data visible)
+      change: `${stats.winRate}%`, 
+      subLabel: "Win Rate", // Label diperjelas
       isPositive: true, 
       status: 'success'
     },
@@ -135,24 +129,27 @@ export default function MetricsStrip({ leads = [] }: MetricsStripProps) {
       label: 'Total Lost',
       icon: <XCircle className="w-4 h-4" />,
       value: stats.visibleLost,
-      change: `${stats.lostRate}%`, // Loss Rate (dari data visible)
+      change: `${stats.lostRate}%`, 
+      subLabel: "Loss Rate",
       isPositive: false,
       status: 'danger'
     },
     {
-      label: 'Active Leads', // Semua yang tidak di-archive
+      label: 'WIP Leads', // Nama baru yang lebih profesional
       icon: <Globe className="w-4 h-4" />,
-      value: stats.activeLeadsCount, 
-      change: `${stats.inProgressRatio}%`, // % yang statusnya masih jalan (bukan won/lost)
+      value: stats.openDealsCount, // Angka: 3
+      change: `${stats.openRate}%`, // Persen: 33%
+      subLabel: "In Progress",
       isPositive: true,
       status: 'neutral'
     },
     {
-      label: 'Total Leads', // Grand Total (Archive + Non-Archive)
+      label: 'Total Leads', 
       icon: <Database className="w-4 h-4" />, 
-      value: stats.grandTotal, 
-      change: `${stats.archiveRatio}%`, // % yang di-archive
-      isPositive: false, // Netral/Info
+      value: stats.grandTotal, // Angka: 9
+      change: `${stats.completionRate}%`, // Persen: 67%
+      subLabel: "Completed",
+      isPositive: true, 
       status: 'info'
     },
   ];
@@ -164,7 +161,7 @@ export default function MetricsStrip({ leads = [] }: MetricsStripProps) {
         
         {items.map((item, index) => {
             
-            // Logic Warna & Icon
+            // Logic Warna & Icon Status
             let colorClass = "text-gray-500"; 
             let IconComp = Minus;
 
@@ -176,10 +173,10 @@ export default function MetricsStrip({ leads = [] }: MetricsStripProps) {
                 IconComp = TrendingDown; 
             } else if (item.status === 'neutral') {
                 colorClass = "text-blue-600";
-                IconComp = TrendingUp; // Progress naik
-            } else {
-                 colorClass = "text-gray-500";
-                 IconComp = Archive; // Icon Database untuk total
+                IconComp = ClipboardClock; // Icon Refresh/Cycle untuk proses
+            } else { // Info / Total
+                 colorClass = "text-gray-600";
+                 IconComp = ClipboardCheck; 
             }
 
             return (
@@ -196,12 +193,18 @@ export default function MetricsStrip({ leads = [] }: MetricsStripProps) {
                       {item.value}
                     </span>
 
-                    <div className={cn(
-                      "flex items-center text-xs font-semibold self-center ml-2", 
-                      colorClass
-                    )}>
-                      <IconComp className="w-3 h-3 mr-1" />
-                      {item.change}
+                    <div className="flex flex-col ml-3 items-start">
+                        <div className={cn(
+                        "flex items-center text-xs font-bold", 
+                        colorClass
+                        )}>
+                            <IconComp className="w-3 h-3 mr-1" />
+                            {item.change}
+                        </div>
+                        {/* Sub Label untuk konteks */}
+                        <span className="text-[10px] text-gray-400 font-medium leading-none mt-0.5">
+                            {item.subLabel}
+                        </span>
                     </div>
 
                 </div>

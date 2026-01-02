@@ -17,7 +17,7 @@ export default function DashboardPage() {
   return (
     <div className="p-6 space-y-3 transition-all duration-300 ease-in-out">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
           <p className="text-sm text-gray-500">Showing data from current month</p>
