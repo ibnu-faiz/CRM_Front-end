@@ -70,7 +70,6 @@ const stageConfig = [
 
 export default function LeadsKanban({
   grouped,
-  stats,
   loading,
   onUpdateLead,
   onArchiveLead,
@@ -262,8 +261,8 @@ export default function LeadsKanban({
               <div className="bg-white rounded-b-xl border border-gray-200 border-t-0 shadow-sm overflow-hidden min-h-[50px]">
                 {leadsToDisplay.length > 0 ? (
                   <>
-                    <div className="bg-gray-50/50 px-6 py-2 border-y border-gray-100">
-                      <div className="grid grid-cols-12 gap-4 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                    <div className="bg-gray-50/50 px-6 py-2 border-y border-gray-200">
+                      <div className="grid grid-cols-12 gap-4 text-[12px] font-bold text-gray-900 capitalize tracking-wider">
                         <div className="col-span-4">Lead Details</div>
                         <div className="col-span-3">Value</div>
                         <div className="col-span-2">Priority & Client</div>

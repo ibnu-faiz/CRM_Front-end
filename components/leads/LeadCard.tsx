@@ -163,7 +163,7 @@ export default function LeadCard({
               <CalendarCheck className="w-3.5 h-3.5 text-emerald-600" />
               <span className="text-emerald-600 font-medium">
                 {/* Tampilkan wonAt, fallback ke string kosong biar aman TS */}
-                {formatDate(lead.wonAt || "")}
+                Closed At: {formatDate(lead.wonAt || "")}
               </span>
             </>
           ) : lead.status === "LOST" ? (
@@ -171,14 +171,14 @@ export default function LeadCard({
             <>
               <CalendarX className="w-3.5 h-3.5 text-red-600" />
               <span className="text-red-600 font-medium">
-                {formatDate(lead.lostAt || "")}
+                Closed At: {formatDate(lead.lostAt || "")}
               </span>
             </>
           ) : (
             /* KONDISI 3: status OPEN / Lainnya (Abu-abu & Jam) */
             <>
               <CalendarClock className="w-3.5 h-3.5" />
-              <span>{lead.dueDate ? formatDate(lead.dueDate) : "-"}</span>
+              <span>Due: {lead.dueDate ? formatDate(lead.dueDate) : "-"}</span>
             </>
           )}
         </div>
