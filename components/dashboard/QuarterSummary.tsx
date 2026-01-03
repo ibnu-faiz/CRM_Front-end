@@ -1,13 +1,19 @@
 "use client";
 
 import useSWR from "swr";
-import Link from "next/link"; // 👈 1. Import Link
+import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, FileText, TrendingUp, Loader2, ArrowRight } from "lucide-react"; // Import ArrowRight
+import { CheckCircle2, FileText, TrendingUp, Loader2, ArrowRight } from "lucide-react";
 import { fetcher } from "@/lib/fetcher";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
+// 1. Definisikan Props
+interface QuarterSummaryProps {
+  month: number;
+  year: number;
+}
 
 const formatRupiah = (value: number) => {
   return new Intl.NumberFormat("id-ID", {
@@ -17,15 +23,18 @@ const formatRupiah = (value: number) => {
   }).format(value);
 };
 
-export default function QuarterSummary() {
+// 2. Terima Props
+export default function QuarterSummary({ month, year }: QuarterSummaryProps) {
   
+  // 3. Gunakan Props di URL SWR
+  // Backend akan otomatis menghitung Quarter berdasarkan bulan yang dikirim
   const { data: summaryData, isLoading } = useSWR(
-    `${API_URL}/dashboard/quarter-summary`, 
+    `${API_URL}/dashboard/quarter-summary?month=${month}&year=${year}`, 
     fetcher
   );
 
   const quarter = summaryData?.quarter || 1;
-  const year = summaryData?.year || new Date().getFullYear();
+  const yearDisplay = summaryData?.year || year;
   
   const stats = [
     {
@@ -33,7 +42,7 @@ export default function QuarterSummary() {
       value: formatRupiah(summaryData?.data?.revenue || 0),
       icon: TrendingUp,
       color: "bg-green-500/20 text-green-400",
-      link: "/leads" // 👈 Kita arahkan semua ke leads dulu
+      link: "/leads" 
     },
     {
       label: "Deals Won",
@@ -55,7 +64,7 @@ export default function QuarterSummary() {
     <Card className="flex flex-col">
       <CardHeader className="justify-center">
         <CardTitle className="text-lg font-bold text-center">
-           Quarter {quarter} Summary {year}
+           Quarter {quarter} Summary {yearDisplay}
         </CardTitle>
       </CardHeader>
       
@@ -87,11 +96,10 @@ export default function QuarterSummary() {
                   </div>
                 </div>
 
-                {/* 👇 2. Implementasi Link ke /leads */}
                 <Link href={item.link}>
                     <Button
                       variant="ghost"
-                      size="icon" // Pakai size icon biar rapi
+                      size="icon" 
                       className="text-gray-400 hover:text-white hover:bg-white/10"
                     >
                       <ArrowRight className="w-5 h-5" />

@@ -11,7 +11,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
-import { Loader2, FolderOpen } from 'lucide-react'; // Tambah icon FolderOpen
+import { Loader2, FolderOpen } from 'lucide-react';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -20,17 +20,25 @@ interface ChartData {
   total: number;
 }
 
-export default function LeadsChart() {
+// 1. Definisikan Props (Hanya butuh Year)
+interface LeadsChartProps {
+  year: number;
+}
+
+export default function LeadsChart({ year }: LeadsChartProps) {
   const [data, setData] = useState<ChartData[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // 2. Fetch Data saat Tahun berubah
   useEffect(() => {
     const fetchData = async () => {
       try {
+        setLoading(true); // Reset loading saat filter ganti
         const token = localStorage.getItem('token');
         if (!token) return;
 
-        const res = await fetch(`${API_URL}/dashboard/leads-chart`, {
+        // 3. Masukkan parameter year ke URL
+        const res = await fetch(`${API_URL}/dashboard/leads-chart?year=${year}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -46,17 +54,17 @@ export default function LeadsChart() {
     };
 
     fetchData();
-  }, []);
+  }, [year]); // <- Dependency Array: Re-run kalau tahun berubah
 
   // --- LOGIKA CEK KOSONG ---
-  // Cek apakah semua bulannya nol? (Total semua leads = 0)
   const isDataEmpty = !loading && data.every(item => item.total === 0);
 
   return (
     <Card className="bg-white hover:shadow-md transition-shadow">
       <CardHeader className="pb-4 text-center">
         <CardTitle className="text-lg font-bold text-gray-800">Total Leads by Months</CardTitle>
-        <p className="text-sm text-gray-500">Performance for current year</p>
+        {/* 4. Subtitle Dinamis */}
+        <p className="text-sm text-gray-500">Performance for {year}</p>
       </CardHeader>
       <CardContent>
         {loading ? (
@@ -65,14 +73,12 @@ export default function LeadsChart() {
             Loading chart...
           </div>
         ) : isDataEmpty ? (
-          // --- TAMPILAN KOSONG (EMPTY STATE) ---
           <div className="h-[350px] flex flex-col items-center justify-center text-gray-400 border-2 border-dashed border-gray-100 rounded-lg bg-gray-50/50">
             <FolderOpen className="w-12 h-12 mb-3 opacity-20" />
-            <p className="font-medium text-gray-500">No data available yet</p>
+            <p className="font-medium text-gray-500">No data available for {year}</p>
             <p className="text-xs text-gray-400 mt-1">Start adding leads to see the chart</p>
           </div>
         ) : (
-          // --- TAMPILAN CHART (NORMAL) ---
           <div className="h-[350px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
@@ -105,7 +111,7 @@ export default function LeadsChart() {
                 <Bar 
                   dataKey="total" 
                   fill="#111827" 
-                  radius={[4, 4, 0, 0]} // Radius atas saja biar rapi
+                  radius={[4, 4, 0, 0]} 
                   barSize={40} 
                 />
               </BarChart>

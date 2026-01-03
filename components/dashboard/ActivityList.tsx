@@ -114,7 +114,7 @@ export default function ActivityList() {
   }, []);
 
   const { data: activitiesData, isLoading } = useSWR<LeadActivity[]>(
-    `${API_URL}/activities`,
+    `${API_URL}/dashboard/schedule`, 
     fetcher
   );
 

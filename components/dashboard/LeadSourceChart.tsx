@@ -13,21 +13,35 @@ interface SourceData {
   [key: string]: any;
 }
 
-const COLORS = [
-  '#1f2937', '#4b5563', '#9ca3af', '#2563eb', '#10b981', '#f59e0b', 
-];
+// 1. Update Props
+interface LeadSourceChartProps {
+  month: number;
+  year: number;
+  isAllTime: boolean; // <--- Tambah ini
+}
 
-export default function LeadSourceChart() {
+const COLORS = ['#1f2937', '#4b5563', '#9ca3af', '#2563eb', '#10b981', '#f59e0b'];
+
+export default function LeadSourceChart({ month, year, isAllTime }: LeadSourceChartProps) {
   const [data, setData] = useState<SourceData[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
+        setLoading(true);
         const token = localStorage.getItem('token');
-        const res = await fetch(`${API_URL}/dashboard/leads-source`, {
+        if (!token) return;
+
+        // 2. Logic URL Pintar
+        const queryParams = isAllTime 
+            ? `?range=all` 
+            : `?month=${month}&year=${year}`;
+
+        const res = await fetch(`${API_URL}/dashboard/leads-source${queryParams}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
+        
         if (!res.ok) throw new Error('Failed');
         const jsonData = await res.json();
         setData(jsonData);
@@ -37,21 +51,18 @@ export default function LeadSourceChart() {
         setLoading(false);
       }
     };
+
     fetchData();
-  }, []);
+  }, [month, year, isAllTime]); // 3. Dependency update
 
   const isDataEmpty = !loading && data.length === 0;
 
-  // --- FUNGSI CUSTOM LABEL (BADGE PERSEN) ---
   const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
     const RADIAN = Math.PI / 180;
-    // Hitung posisi label (sedikit di luar lingkaran chart)
-    const radius = outerRadius * 1; // Jarak label dari pusat (1.35x jari-jari luar)
+    const radius = outerRadius * 1; 
     const x = cx + radius * Math.cos(-midAngle * RADIAN);
     const y = cy + radius * Math.sin(-midAngle * RADIAN);
-
     return (
-      // foreignObject memungkinkan kita pakai HTML/Tailwind di dalam SVG Recharts
       <foreignObject x={x - 20} y={y - 12} width={40} height={24}>
         <div className="flex items-center justify-center w-full h-full bg-white/90 shadow-sm border border-gray-100 rounded-full text-[10px] font-bold text-gray-700 backdrop-blur-[1px]">
           {`${(percent * 100).toFixed(0)}%`}
@@ -81,31 +92,15 @@ export default function LeadSourceChart() {
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
-                  data={data}
-                  cx="50%"
-                  cy="45%"
-                  innerRadius={40} // Sedikit dikecilkan biar proporsional
-                  outerRadius={80} // Dikecilkan agar label muat di dalam kotak
-                  paddingAngle={1}
-                  dataKey="value"
-                  label={renderCustomizedLabel} // <--- PASANG LABEL DISINI
-                  labelLine={false} // Hilangkan garis
+                  data={data} cx="50%" cy="45%" innerRadius={40} outerRadius={80} paddingAngle={1}
+                  dataKey="value" label={renderCustomizedLabel} labelLine={false} 
                 >
                   {data.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} strokeWidth={1} />
                   ))}
                 </Pie>
-                <Tooltip 
-                   formatter={(value: number) => [`${value} Leads`, 'Count']}
-                   contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                />
-                <Legend 
-                  verticalAlign="bottom"
-                  align="center"
-                  layout="horizontal"
-                  iconType="circle"
-                  wrapperStyle={{ paddingTop: '10px' }} 
-                />
+                <Tooltip formatter={(value: number) => [`${value} Leads`, 'Count']} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                <Legend verticalAlign="bottom" align="center" layout="horizontal" iconType="circle" wrapperStyle={{ paddingTop: '10px' }} />
               </PieChart>
             </ResponsiveContainer>
           </div>
