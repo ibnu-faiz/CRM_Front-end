@@ -12,11 +12,8 @@ import {
   ChevronRight,
   Sparkles,
   Loader2,
-  Calendar,
   UserX,
   Check,
-  ChevronDown,
-  X,
 } from "lucide-react";
 import LeadsKanban from "@/components/leads/LeadsKanban";
 import CreateLeadModal from "@/components/leads/CreateLeadModal";
